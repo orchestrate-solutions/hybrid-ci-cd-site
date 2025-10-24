@@ -1,140 +1,26 @@
-perfect new project overview now please
-
 # Hybrid Control Plane for CI/CD & Secrets Management
 
-## Executive Summary
+## Overview
 
-A cloud-orchestrated CI/CD platform that eliminates the trade-off between operational simplicity and security control. The system provides managed orchestration through a lightweight SaaS control plane while keeping all secrets, credentials, and sensitive workloads inside your own cloud infrastructure—ensuring the platform provider never has access to your data.
+This project is a cloud-orchestrated CI/CD platform that eliminates the trade-off between operational simplicity and security control. The documentation has been organized into modular components for easier navigation and maintenance.
 
-This architecture delivers enterprise-grade security, leveraging modern session management and workload identity federation instead of legacy token-based systems. It is designed to reduce infrastructure maintenance overhead by 60-80% while achieving a superior security posture and satisfying stringent regulatory compliance[1][2].
+## Project Components
 
-## The Problem
+### Planning & Requirements
+- **[Project Needs Mapping](docs/project-needs.md)** - Implementation requirements, dependencies, and priorities for each component
 
-Organizations face an impossible choice when selecting CI/CD and secrets management platforms:
+### Core Concept
+- **[Executive Summary](docs/executive-summary.md)** - High-level overview of the platform and its value proposition
+- **[Problem Statement](docs/problem-statement.md)** - The challenges and pain points this platform addresses
 
-**Traditional SaaS Solutions** require uploading secrets to third-party infrastructure, creating compliance risks and increasing the attack surface. A breach at the vendor compromises every customer's credentials[3][1].
+### Architecture & Design
+- **[Solution Architecture](docs/solution-architecture.md)** - Control plane, data plane, and communication model
+- **[Authentication Systems](docs/authentication.md)** - User authentication (stateful sessions) and agent authentication (workload identity federation)
+- **[Frontend Architecture](docs/frontend-architecture.md)** - JAMstack static site approach and GitOps workflow
 
-**Self-Hosted Solutions** provide security control but burden engineering teams with maintenance, scaling, upgrades, and 24/7 operations—consuming 30-50% of platform engineering capacity[2].
-
-**Legacy Authentication** using stateless tokens (like JWTs) introduces vulnerabilities such as an inability to instantly revoke compromised sessions, exposure to XSS attacks, and token leakage.
-
-## Our Solution: Zero-Knowledge Hybrid Architecture
-
-A modern platform that separates orchestration logic from data execution through **control plane and data plane isolation**, fortified with state-of-the-art authentication.
-
-### Control Plane (Managed SaaS)
-
-- Dashboard UI and workflow orchestration
-
-- Job scheduling and pipeline coordination
-
-- Agent registration and health monitoring
-
-- Centralized, stateful session management for user access
-
-**Hosted by provider. Contains zero secrets or customer data**[1][4].
-
-### Data Plane (Your Infrastructure)
-
-- CI/CD job execution on self-hosted agents
-
-- Secret storage in your existing vault (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault)
-
-- Source code, build artifacts, and production credentials
-
-- Authentication via cloud-native Workload Identity Federation
-
-**Runs in your cloud. Provider has no access**[3][1][4].
-
-### Communication Model
-
-Agents in your infrastructure use short-lived, auto-rotated credentials from your cloud provider (e.g., AWS IAM) to initiate outbound-only HTTPS connections. The provider can only send instructions—never read your secrets or data[3][1].
-
-## How It Works
-
-### 1. User Authentication: Stateful Sessions (Not JWTs)
-
-The platform rejects outdated stateless JWTs in favor of a secure, stateful session model:
-
-1.  **OAuth Login**: User authenticates via your SSO provider (Okta, Google, Azure AD).
-
-2.  **Session Creation**: A serverless function creates a session record in a dedicated database (like DynamoDB or Redis) with a short Time-To-Live (TTL).
-
-3.  **Secure Cookie**: A cryptographically secure, random session ID is returned to the user in an `httpOnly`, `secure`, `SameSite=Strict` cookie.
-
-4.  **Validation**: On every API call, the control plane validates the session ID against the database. This allows for **instant session revocation** by simply deleting the session record.
-
-This model provides robust protection against XSS and CSRF attacks and ensures compromised sessions can be terminated immediately.
-
-### 2. Agent Authentication: Workload Identity Federation
-
-Agents do not use long-lived static credentials. Instead, they leverage your cloud's native IAM capabilities:
-
-1.  **Assume Role**: The agent, running as a workload in your cloud (e.g., an ECS task or Kubernetes pod), assumes an IAM role with tightly scoped permissions.
-
-2.  **Get Credentials**: It acquires short-lived credentials (15-minute expiry) directly from the cloud provider's metadata service.
-
-3.  **Signed Requests**: The agent uses these credentials to sign its API requests to the control plane (e.g., using AWS Signature V4).
-
-4.  **Auto-Rotation**: Credentials are automatically rotated by the cloud provider, eliminating the need to manage secrets for the agents themselves.
-
-### 3. Static Frontend (JAMstack Architecture)
-
-The dashboard is a pre-built static site deployed globally via CDN, powered by a configuration-as-code workflow. Adding a new service is a simple pull request to a YAML file[5][6][7][8].
-
-## Key Features & Benefits
-
-### Uncompromising Security
-
-**Instant Session Revocation**: Terminate any user session immediately, a critical feature impossible with standard JWTs.
-
-**Zero-Knowledge Architecture**: Platform provider cannot decrypt or access your secrets. Decryption keys remain in your infrastructure[9][10][11].
-
-**No Agent Secrets**: Agents use auto-rotated credentials from your cloud's IAM, eliminating a major class of secrets to manage or leak.
-
-**XSS/CSRF Resistant**: Use of `httpOnly`, `SameSite=Strict` cookies for session management mitigates common web vulnerabilities.
-
-**Data Sovereignty**: Secrets never leave your jurisdiction, satisfying GDPR, HIPAA, and DORA compliance[3][1].
-
-### Operational Efficiency & Cost Reduction
-
-**30% Productivity Gain**: Eliminate time spent on platform maintenance and upgrades. Engineers focus on features, not infrastructure[2].
-
-**60-80% Infrastructure Cost Savings**: Retire self-hosted orchestration servers. Pay only for agent compute and serverless API invocations[1].
-
-**GitOps Workflow**: All configuration changes are managed through pull requests, providing a complete audit trail and instant rollback capabilities[6][12].
-
-## Technology Stack (Updated for Security)
-
-### Frontend Layer
-
-- **Framework**: Next.js with Static Site Generation (SSG)
-
-- **Hosting**: GitHub Pages / Cloudflare Pages / Vercel
-
-### API Layer
-
-- **Compute**: AWS Lambda / Cloudflare Workers
-
-- **Authentication**: **Stateful Session Management** using DynamoDB or Redis
-
-- **User Identity**: OAuth 2.0 with enterprise SSO providers
-
-- **Cookies**: `httpOnly`, `secure`, `SameSite=Strict` session cookies
-
-### Agent Layer
-
-- **Runtime**: Docker containers on ECS/EKS or Kubernetes
-
-- **Authentication**: **Workload Identity Federation** (AWS IAM Roles, GCP Workload Identity, Azure Managed Identities)
-
-- **Communication**: Outbound-only HTTPS with signed requests (e.g., AWS Signature V4)
-
-### Configuration Layer
-
-- **Format**: YAML/JSON schemas with validation
-
-- **Storage**: Git repository as single source of truth
+### Implementation & Operations
+- **[Technology Stack](docs/technology-stack.md)** - Detailed technology choices and implementation details
+- **[Key Features & Benefits](docs/features-benefits.md)** - Security features, operational benefits, and cost savings
 
 ## Why This Matters
 
