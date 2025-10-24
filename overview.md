@@ -6,6 +6,9 @@ This project is a cloud-orchestrated CI/CD platform that eliminates the trade-of
 
 ## Project Components
 
+### Planning & Requirements
+- **[Project Needs Mapping](docs/project-needs.md)** - Implementation requirements, dependencies, and priorities for each component
+
 ### Core Concept
 - **[Executive Summary](docs/executive-summary.md)** - High-level overview of the platform and its value proposition
 - **[Problem Statement](docs/problem-statement.md)** - The challenges and pain points this platform addresses
