@@ -264,6 +264,96 @@ export class MarketplaceService {
   }
 
   /**
+   * Load real configs from GitHub (future implementation)
+   * This would replace mock data with discovered configs from GitHub API
+   * 
+   * Usage:
+   * ```typescript
+   * const service = new MarketplaceService();
+   * await service.loadFromGitHub();
+   * const configs = await service.getConfigs();
+   * ```
+   */
+  async loadFromGitHub(): Promise<void> {
+    try {
+      console.log('[MarketplaceService] Loading configs from GitHub...');
+      
+      // Import GitHub service
+      const { githubService } = await import('./githubService');
+      
+      // Discover configs
+      const discoveries = await githubService.discoverConfigs();
+      console.log(`[MarketplaceService] Discovered ${discoveries.length} configs from GitHub`);
+      
+      // Process each discovery through the pipeline
+      for (const discovery of discoveries) {
+        try {
+          // Fetch manifest content
+          const manifestContent = await githubService.getManifestContent(
+            discovery.owner,
+            discovery.repo
+          );
+          
+          if (!manifestContent) {
+            console.warn(`[MarketplaceService] No manifest found for ${discovery.owner}/${discovery.repo}`);
+            continue;
+          }
+          
+          // Get contributor count
+          const contributorCount = await githubService.getContributorCount(
+            discovery.owner,
+            discovery.repo
+          );
+          
+          // Build ConfigMetrics
+          const metrics = githubService.buildMetrics(discovery.metrics, contributorCount);
+          
+          // Create ConfigSource
+          const source: any = {
+            owner: discovery.owner,
+            repo: discovery.repo,
+            path: discovery.path,
+            github_url: `https://github.com/${discovery.owner}/${discovery.repo}`,
+            manifest_url: discovery.manifest_url,
+            ref: 'main', // Could detect from repo
+          };
+          
+          // Parse and process through discovery chain
+          const result = await configDiscoveryChain.process({
+            id: `github-${discovery.owner}-${discovery.repo}`,
+            type: 'yaml',
+            content: manifestContent,
+            source,
+            github_metrics: discovery.metrics,
+          });
+          
+          if (result.valid) {
+            const preview = result.preview;
+            // Override metrics with GitHub data
+            preview.metrics = {
+              stars: metrics.stars,
+              forks: metrics.forks,
+              downloads: 0,
+            };
+            
+            this.mockConfigs.push(preview);
+            console.log(`[MarketplaceService] Added: ${preview.name} from ${discovery.owner}/${discovery.repo}`);
+          } else {
+            console.warn(`[MarketplaceService] Invalid config from ${discovery.owner}/${discovery.repo}:`, result.errors);
+          }
+        } catch (err) {
+          console.error(`[MarketplaceService] Error processing ${discovery.owner}/${discovery.repo}:`, err);
+        }
+      }
+      
+      console.log(`[MarketplaceService] GitHub sync complete: ${this.mockConfigs.length} configs total`);
+    } catch (err) {
+      console.error('[MarketplaceService] GitHub sync failed:', err);
+      throw err;
+    }
+  }
+
+  /**
    * Sort configs by specified criteria
    */
   private sortConfigs(configs: ConfigPreview[], sortBy: string): ConfigPreview[] {
