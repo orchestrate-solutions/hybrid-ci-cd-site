@@ -125,9 +125,11 @@ class GitHubServiceImpl {
       const query = 'filename:.hybrid-cicd/manifest.yaml';
       const searchUrl = `/search/code?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=30`;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const searchResult = (await this.fetch(searchUrl)) as { items?: Array<any> } | null;
       const results: DiscoveryResult[] = [];
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const item of (searchResult?.items || []) as any[]) {
         // Parse repository and file path from search result
         const [owner, repo] = item.repository.full_name.split('/');
@@ -160,21 +162,21 @@ class GitHubServiceImpl {
    */
   async getRepoMetrics(owner: string, repo: string): Promise<GitHubRepoMetrics> {
     const cacheKey = `repo-metrics:${owner}/${repo}`;
-    const cached = this.cache.get(cacheKey);
+    const cached = this.cache.get(cacheKey) as GitHubRepoMetrics | null;
     if (cached) return cached;
 
     try {
-      const repoData = await this.fetch(`/repos/${owner}/${repo}`);
+      const repoData = (await this.fetch(`/repos/${owner}/${repo}`)) as Record<string, unknown> | null;
 
       const metrics: GitHubRepoMetrics = {
-        stars: repoData.stargazers_count ?? 0,
-        forks: repoData.forks_count ?? 0,
-        watchers: repoData.watchers_count ?? 0,
-        open_issues: repoData.open_issues_count ?? 0,
-        created_at: repoData.created_at ?? '',
-        updated_at: repoData.updated_at ?? '',
-        language: repoData.language ?? null,
-        topics: repoData.topics ?? [],
+        stars: (repoData?.stargazers_count as number) ?? 0,
+        forks: (repoData?.forks_count as number) ?? 0,
+        watchers: (repoData?.watchers_count as number) ?? 0,
+        open_issues: (repoData?.open_issues_count as number) ?? 0,
+        created_at: (repoData?.created_at as string) ?? '',
+        updated_at: (repoData?.updated_at as string) ?? '',
+        language: (repoData?.language as string | null) ?? null,
+        topics: (repoData?.topics as string[]) ?? [],
       };
 
       this.cache.set(cacheKey, metrics);
