@@ -125,10 +125,10 @@ class GitHubServiceImpl {
       const query = 'filename:.hybrid-cicd/manifest.yaml';
       const searchUrl = `/search/code?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=30`;
 
-      const searchResult = await this.fetch(searchUrl);
+      const searchResult = (await this.fetch(searchUrl)) as { items?: Array<any> } | null;
       const results: DiscoveryResult[] = [];
 
-      for (const item of searchResult.items || []) {
+      for (const item of (searchResult?.items || []) as any[]) {
         // Parse repository and file path from search result
         const [owner, repo] = item.repository.full_name.split('/');
         const manifestPath = item.path;
