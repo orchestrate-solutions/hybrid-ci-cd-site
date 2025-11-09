@@ -201,7 +201,7 @@ class GitHubServiceImpl {
    */
   async getManifestContent(owner: string, repo: string, path: string = '.hybrid-cicd/manifest.yaml'): Promise<string | null> {
     const cacheKey = `manifest:${owner}/${repo}/${path}`;
-    const cached = this.cache.get(cacheKey);
+    const cached = this.cache.get(cacheKey) as string | null;
     if (cached) return cached;
 
     try {
@@ -227,7 +227,7 @@ class GitHubServiceImpl {
    */
   async getContributorCount(owner: string, repo: string): Promise<number> {
     const cacheKey = `contributors:${owner}/${repo}`;
-    const cached = this.cache.get(cacheKey);
+    const cached = this.cache.get(cacheKey) as number | null;
     if (cached !== null) return cached;
 
     try {
