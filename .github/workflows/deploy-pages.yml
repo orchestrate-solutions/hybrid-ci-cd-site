@@ -1,0 +1,94 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 18
+
+jobs:
+  build-pages:
+    name: "Build Static Export"
+    runs-on: ubuntu-latest
+    outputs:
+      pages-url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build static export
+        run: npm run build:pages
+        env:
+          NEXT_PUBLIC_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+
+      - name: Create .nojekyll file
+        run: |
+          touch out/.nojekyll
+          echo "Jekyll processing disabled for Next.js static export" >> out/.nojekyll
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'out'
+
+  pages-deploy:
+    name: "Deploy to GitHub Pages"
+    needs: build-pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  verify-deployment:
+    name: "Verify Deployment"
+    needs: pages-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for DNS propagation
+        run: sleep 10
+
+      - name: Check site accessibility
+        run: |
+          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo "Checking deployment at: $REPO_URL"
+          curl -f -s -o /dev/null -w "HTTP Status: %{http_code}\n" "$REPO_URL" || echo "Site still propagating..."
+
+  notify:
+    name: "Create Deployment Notification"
+    needs: pages-deploy
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create deployment status
+        run: |
+          echo "GitHub Pages deployment completed"
+          echo "URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { marketplaceService } from '@/lib/services/marketplaceService';
+import { useInstallationWorkflow } from '@/hooks/useInstallationWorkflow';
+import { InstallationModal } from '@/components/marketplace/InstallationModal';
 import type { ConfigPreview } from '@/lib/types/marketplace';
 
 interface ConfigDetails extends ConfigPreview {
@@ -21,6 +23,9 @@ export default function ConfigDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [installedCount, setInstalledCount] = useState(0);
+
+  // Use the installation workflow hook
+  const installation = useInstallationWorkflow('current-user-id');
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -204,7 +209,7 @@ export default function ConfigDetailPage() {
             {/* Install Card */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
               <button
-                onClick={() => alert('Installation workflow coming soon!')}
+                onClick={installation.openModal}
                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors mb-3"
               >
                 + Install Config
@@ -250,6 +255,29 @@ export default function ConfigDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Installation Modal */}
+      {config && (
+        <InstallationModal
+          isOpen={installation.isOpen}
+          isLoading={installation.isLoading}
+          isSuccess={installation.isSuccess}
+          configName={config.name}
+          configId={config.id}
+          configSource={{
+            owner: config.id.split('-')[1] || 'config-author',
+            repo: `config-${config.id}`,
+            path: '.hybrid-cicd/manifest.yaml',
+          }}
+          selectedTarget={installation.selectedTarget}
+          availableTargets={installation.availableTargets}
+          error={installation.error}
+          onClose={installation.closeModal}
+          onSelectTarget={installation.selectTarget}
+          onInstall={installation.installConfig}
+          onReset={installation.resetState}
+        />
+      )}
     </div>
   );
 }

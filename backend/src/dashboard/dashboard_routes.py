@@ -2,7 +2,7 @@
 Dashboard API routes for job and deployment tracking (CodeUChain-powered).
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -37,6 +37,92 @@ _list_jobs_chain = ListJobsChain(_job_store)
 _deployment_creation_chain = DeploymentCreationChain(_deployment_store)
 _deployment_lifecycle_chain = DeploymentLifecycleChain(_deployment_store)
 _list_deployments_chain = ListDeploymentsChain(_deployment_store)
+
+
+# ============================================================================
+# Demo Data Integration
+# ============================================================================
+
+def is_demo_mode(request: Request) -> bool:
+    """Check if request is in demo mode"""
+    demo_header = request.headers.get("x-demo-mode", "").lower()
+    return demo_header == "true"
+
+async def get_demo_data(endpoint: str, **kwargs):
+    """Get demo data for unified pipeline"""
+    # Import demo data generators dynamically to avoid circular imports
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), '../../../src/lib'))
+
+    # For now, return mock data - in a real implementation, this would call the actual demo generators
+    if "agents" in endpoint:
+        return [
+            {
+                "agent_id": f"agent-{i:03d}",
+                "status": "healthy" if i % 3 != 0 else "unhealthy",
+                "cpu_percent": 45.2 + (i * 2.1),
+                "memory_percent": 62.8 + (i * 1.5),
+                "disk_percent": 34.1 + (i * 0.8),
+                "jobs_queued": i % 5,
+                "jobs_completed": 100 + (i * 23),
+                "last_heartbeat": "2024-01-15T10:30:00Z",
+                "uptime_seconds": 86400 + (i * 3600),
+                "region": ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"][i % 4]
+            } for i in range(8)
+        ]
+    elif "summary" in endpoint:
+        return {
+            "jobs_running": 3,
+            "jobs_failed_today": 2,
+            "deployments_today": 5,
+            "recent_jobs": [],
+            "recent_deployments": []
+        }
+    elif "jobs" in endpoint:
+        return [
+            {
+                "job_id": f"job-{i:04d}",
+                "job_type": ["test", "build", "deploy"][i % 3],
+                "status": "success",
+                "git_repo": "orchestrate/platform",
+                "git_ref": "main",
+                "git_commit_sha": f"abc123{i:04d}",
+                "git_commit_message": f"Commit message {i}",
+                "git_author": "user@example.com",
+                "exit_code": 0,
+                "duration_seconds": 120 + i,
+                "logs_url": f"https://logs.example.com/job-{i}",
+                "created_at": "2024-01-15T10:00:00Z",
+                "started_at": "2024-01-15T10:01:00Z",
+                "completed_at": "2024-01-15T10:03:00Z",
+                "error_message": None,
+                "tags": {"env": "prod"}
+            } for i in range(20)
+        ]
+    elif "deployments" in endpoint:
+        return [
+            {
+                "deployment_id": f"dep-{i:04d}",
+                "service_name": f"service-{i % 5}",
+                "service_version": f"v1.{i % 10}.0",
+                "git_commit_sha": f"def456{i:04d}",
+                "git_commit_message": f"Deploy commit {i}",
+                "git_author": "deployer@example.com",
+                "status": "live",
+                "deployed_to_staging": True,
+                "deployed_to_production": True,
+                "staging_deployed_at": "2024-01-15T09:00:00Z",
+                "production_deployed_at": "2024-01-15T10:00:00Z",
+                "rolled_back": False,
+                "rolled_back_to_version": None,
+                "rollback_reason": None,
+                "created_at": "2024-01-15T08:00:00Z",
+                "updated_at": "2024-01-15T10:00:00Z"
+            } for i in range(15)
+        ]
+
+    return []
 
 
 # ============================================================================
@@ -369,30 +455,43 @@ async def rollback_deployment(deployment_id: str, request: RollbackRequest) -> D
 # Dashboard Summary
 # ============================================================================
 
+@router.get("/agents", response_model=List[Dict[str, Any]])
+async def get_agents(request: Request) -> List[Dict[str, Any]]:
+    """Get all agents"""
+    if is_demo_mode(request):
+        return await get_demo_data("agents")
+
+    # TODO: Implement real agent fetching
+    return []
+
+
 @router.get("/summary", response_model=DashboardSummary)
-async def get_dashboard_summary() -> Dict[str, Any]:
+async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
     """Get quick status summary"""
+    if is_demo_mode(request):
+        return await get_demo_data("summary")
+
     running_jobs = await _job_store.list_running_jobs()
     all_jobs = await _job_store.list_jobs(limit=1000)
     all_deployments = await _deployment_store.list_deployments(limit=1000)
-    
+
     # Count failed jobs today
     now = datetime.utcnow()
     today_failed = len([
         j for j in all_jobs
         if j.status == JobStatus.FAILED and j.created_at.date() == now.date()
     ])
-    
+
     # Count deployments today
     today_deployments = len([
         d for d in all_deployments
         if d.created_at.date() == now.date()
     ])
-    
+
     # Get recent items
     recent_jobs = running_jobs[:5]
     recent_deployments = all_deployments[:5]
-    
+
     return {
         "jobs_running": len(running_jobs),
         "jobs_failed_today": today_failed,
@@ -426,3 +525,29 @@ async def get_dashboard_summary() -> Dict[str, Any]:
             for d in recent_deployments
         ],
     }
+
+
+@router.get("/jobs", response_model=Dict[str, Any])
+async def list_jobs(
+    request: Request,
+    status: Optional[str] = Query(None),
+    limit: int = Query(100, le=100)
+) -> Dict[str, Any]:
+    """List jobs with optional status filter (powered by CodeUChain)"""
+    if is_demo_mode(request):
+        jobs = await get_demo_data("jobs")
+        if status:
+            jobs = [j for j in jobs if j.get("status") == status]
+        return {"jobs": jobs[:limit], "total": len(jobs)}
+
+    return await _list_jobs_chain.run(status=status, limit=limit)
+
+
+@router.get("/deployments", response_model=Dict[str, Any])
+async def list_deployments(request: Request, limit: int = Query(100, le=100)) -> Dict[str, Any]:
+    """List all deployments (powered by CodeUChain)"""
+    if is_demo_mode(request):
+        deployments = await get_demo_data("deployments")
+        return {"deployments": deployments[:limit], "total": len(deployments)}
+
+    return await _list_deployments_chain.run(service_name=None, limit=limit)

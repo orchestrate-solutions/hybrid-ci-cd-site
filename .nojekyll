@@ -1,0 +1,7 @@
+# This file disables Jekyll processing on GitHub Pages
+# Required for Next.js static exports which use the _next/ directory
+# Without this file, GitHub Pages' Jekyll processor would try to build the site
+# and remove directories starting with underscore, breaking the application
+
+# GitHub Pages detects this file and skips Jekyll processing entirely
+# Allowing the pre-built static files to be served as-is

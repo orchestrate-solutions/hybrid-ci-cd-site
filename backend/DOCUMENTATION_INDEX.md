@@ -25,6 +25,15 @@
 **Understand architectural decisions**
 → [`TASK_8_COMPLETE.md`](./TASK_8_COMPLETE.md#architectural-decisions-documented) — Details on each choice
 
+**Understand incident correlation system**
+→ [`BUILD_SUMMARY_INCIDENT_SYSTEM.md`](./BUILD_SUMMARY_INCIDENT_SYSTEM.md) — Executive overview (10 min)
+
+**Learn how to use incident correlation in alerts**
+→ [`INCIDENT_SYSTEM_OPERATORS_GUIDE.md`](./INCIDENT_SYSTEM_OPERATORS_GUIDE.md) — Quick reference for on-call teams
+
+**Deploy incident correlation system**
+→ [`INCIDENT_SYSTEM_DEPLOYMENT_CHECKLIST.md`](./INCIDENT_SYSTEM_DEPLOYMENT_CHECKLIST.md) — Production deployment steps
+
 ---
 
 ## Documentation by Purpose
@@ -70,6 +79,57 @@ DEPLOYMENT.md
 ├─ Architecture decisions
 ├─ Monitoring
 └─ Troubleshooting
+```
+
+### For Product / Business
+
+```
+PROJECT_STATE.md
+├─ Current capability
+├─ What Sarah experiences
+├─ Timeline to MVP
+└─ Technical stack
+
+PROJECT_DASHBOARD.md
+├─ Progress metrics
+├─ Competitive positioning
+├─ Success criteria
+└─ Next steps
+
+TASK_8_IMPACT.md
+├─ What changed
+├─ Business impact
+├─ Capability improvements
+└─ Cost profile
+
+BUILD_SUMMARY_INCIDENT_SYSTEM.md
+├─ What we built
+├─ Why it matters
+├─ Impact & benefits
+└─ Success metrics
+```
+
+### For Incident Response / On-Call Teams
+
+```
+INCIDENT_SYSTEM_OPERATORS_GUIDE.md ← START HERE
+├─ Quick facts
+├─ Understanding correlation scores
+├─ What to do at each level
+├─ Decision trees
+└─ FAQ
+
+SYSTEM_ARCHITECTURE_DIAGRAM.md
+├─ System overview
+├─ Data flow
+├─ API endpoints
+└─ Integration points
+
+INCIDENT_CORRELATION_SYSTEM.md
+├─ Technical deep-dive
+├─ Correlation algorithm
+├─ Risk scoring
+└─ Health checks
 ```
 
 ### For Product / Business
@@ -164,6 +224,13 @@ TASK_8_IMPACT.md             Business impact
 TASK_8_FINAL_SUMMARY.md      Final summary
 PROJECT_STATE.md             Current project state
 PROJECT_DASHBOARD.md         Progress dashboard
+
+INCIDENT_CORRELATION_SYSTEM.md                    Complete system documentation
+BUILD_SUMMARY_INCIDENT_SYSTEM.md                  Executive summary
+SYSTEM_ARCHITECTURE_DIAGRAM.md                    Architecture & data flow
+INCIDENT_SYSTEM_OPERATORS_GUIDE.md                Quick reference for on-call
+INCIDENT_SYSTEM_DEPLOYMENT_CHECKLIST.md           Production deployment
+
 (this file)                  Documentation index
 ```
 

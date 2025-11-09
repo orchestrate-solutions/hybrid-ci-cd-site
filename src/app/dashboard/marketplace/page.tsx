@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { ConfigCard } from '@/components/marketplace/ConfigCard';
 import {
   SearchInput,
@@ -15,6 +16,7 @@ import { marketplaceService } from '@/lib/services/marketplaceService';
 import type { ConfigPreview, ConfigCategory, MarketplaceFilters, MarketplaceStats } from '@/lib/types/marketplace';
 
 export default function MarketplacePage() {
+  const router = useRouter();
   const [configs, setConfigs] = useState<ConfigPreview[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<MarketplaceStats | null>(null);
@@ -209,10 +211,7 @@ export default function MarketplacePage() {
               <ConfigCard
                 key={config.id}
                 config={config}
-                onClick={() => {
-                  // In real implementation: navigate to config detail page
-                  console.log('Clicked config:', config.id);
-                }}
+                onClick={() => router.push(`/dashboard/marketplace/${config.id}`)}
               />
             ))}
           </div>

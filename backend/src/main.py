@@ -14,6 +14,9 @@ from src.dashboard import router as dashboard_router
 from src.agents.agent_routes import router as agent_router
 from src.db.queue_store import InMemoryJobQueueStore
 from src.queue.queue_routes import create_queue_router
+from src.api.deployments import router as deployments_router
+from src.api.config import router as config_router
+from src.api.incidents import router as incidents_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -51,6 +54,9 @@ queue_store = InMemoryJobQueueStore()
 # Register routers
 app.include_router(dashboard_router, prefix="/api", tags=["dashboard"])
 app.include_router(agent_router, prefix="/api", tags=["agents"])
+app.include_router(deployments_router, prefix="/api", tags=["deployments"])
+app.include_router(config_router, prefix="/api", tags=["config"])
+app.include_router(incidents_router, prefix="/api", tags=["incidents"])
 queue_router = create_queue_router(queue_store)
 app.include_router(queue_router)
 

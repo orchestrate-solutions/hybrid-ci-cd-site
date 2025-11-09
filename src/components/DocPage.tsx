@@ -56,7 +56,7 @@ export default function DocPage({ docName }: DocPageProps) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-lg text-zinc-600">Loading documentation...</p>
+        <p className="text-lg text-zinc-700 dark:text-zinc-300">Loading documentation...</p>
       </div>
     );
   }
@@ -65,7 +65,7 @@ export default function DocPage({ docName }: DocPageProps) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <h1 className="text-2xl font-bold text-red-600">Error</h1>
-        <p className="text-lg text-zinc-600">{error}</p>
+        <p className="text-lg text-zinc-700 dark:text-zinc-300">{error}</p>
         <Link href="/" className="text-blue-600 hover:underline">
           Back to home
         </Link>
@@ -81,11 +81,11 @@ export default function DocPage({ docName }: DocPageProps) {
           <Link href="/" className="text-sm text-blue-600 hover:underline">
             ← Back
           </Link>
-          <h1 className="mt-4 text-4xl font-bold text-black dark:text-white">
+          <h1 className="mt-4 text-4xl font-bold text-gray-900 dark:text-gray-100">
             {metadata.title || docName}
           </h1>
           {metadata.description && (
-            <p className="mt-2 text-lg text-zinc-600 dark:text-zinc-400">
+            <p className="mt-2 text-lg text-zinc-700 dark:text-zinc-300">
               {metadata.description}
             </p>
           )}
@@ -109,7 +109,7 @@ export default function DocPage({ docName }: DocPageProps) {
                     >
                       <a
                         href={`#${heading.id}`}
-                        className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                        className="text-sm text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
                       >
                         {heading.title}
                       </a>
