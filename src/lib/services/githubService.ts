@@ -113,7 +113,7 @@ class GitHubServiceImpl {
    */
   async discoverConfigs(): Promise<DiscoveryResult[]> {
     const cacheKey = 'discover-configs';
-    const cached = this.cache.get(cacheKey);
+    const cached = this.cache.get(cacheKey) as DiscoveryResult[] | null;
     if (cached) return cached;
 
     try {
