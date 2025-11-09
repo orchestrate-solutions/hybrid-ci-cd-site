@@ -4,7 +4,7 @@ import React from 'react';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  [key: string]: any;
+  [key: string]: React.ReactNode | undefined;
 }
 
 /**

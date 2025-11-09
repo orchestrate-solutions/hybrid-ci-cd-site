@@ -89,7 +89,7 @@ export class MarketplaceService {
           name: `Author ${i}`,
           github_username: `user${i}`,
           avatar_url: `https://i.pravatar.cc/40?img=${i}`,
-          reputation_tier: ['contributor', 'builder', 'expert', 'legend'][i % 4] as any,
+          reputation_tier: (['contributor', 'builder', 'expert', 'legend'][i % 4] as 'contributor' | 'builder' | 'expert' | 'legend'),
         },
         metrics: {
           stars: Math.floor(Math.random() * 500),
@@ -240,7 +240,7 @@ export class MarketplaceService {
    * Get configs by category with counts
    */
   async getCategoryCounts(): Promise<Record<ConfigCategory, number>> {
-    const counts: Record<ConfigCategory, number> = {} as any;
+    const counts: Record<ConfigCategory, number> = {} as Record<ConfigCategory, number>;
     this.mockConfigs.forEach((c) => {
       counts[c.category] = (counts[c.category] ?? 0) + 1;
     });

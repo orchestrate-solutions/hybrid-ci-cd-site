@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { marketplaceService } from '@/lib/services/marketplaceService';
 import type { ConfigPreview, ConfigCategory, MarketplaceFilters, MarketplaceStats } from '@/lib/types/marketplace';
 
@@ -42,7 +42,7 @@ export function useMarketplace(): UseMarketplaceReturn {
     loading: true,
     error: null,
     stats: null,
-    categoryCounts: {} as any,
+    categoryCounts: {} as Record<ConfigCategory, number>,
   });
 
   // Filter state
@@ -52,11 +52,6 @@ export function useMarketplace(): UseMarketplaceReturn {
     selectedTypes: [],
     sortBy: 'trending',
   });
-
-  // Load data on mount
-  useEffect(() => {
-    refreshData();
-  }, []);
 
   const refreshData = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
@@ -77,6 +72,16 @@ export function useMarketplace(): UseMarketplaceReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load marketplace data';
       setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
+    }
+  }, []);
+
+  // Load data on mount using ref to track first render
+  const mounted = useRef(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      void refreshData();
     }
   }, []);
 

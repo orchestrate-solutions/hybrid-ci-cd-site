@@ -32,10 +32,10 @@ interface DiscoveryResult {
  * Cache implementation with TTL
  */
 class GitHubCache {
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
   private readonly TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-  get(key: string): any | null {
+  get(key: string): unknown | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
 
@@ -47,7 +47,7 @@ class GitHubCache {
     return entry.data;
   }
 
-  set(key: string, data: any): void {
+  set(key: string, data: unknown): void {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
@@ -87,7 +87,7 @@ class GitHubServiceImpl {
   /**
    * Fetch from GitHub API with error handling
    */
-  private async fetch(path: string): Promise<any> {
+  private async fetch(path: string): Promise<unknown> {
     const url = `${this.baseURL}${path}`;
 
     try {

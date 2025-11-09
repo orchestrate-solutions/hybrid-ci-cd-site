@@ -5,7 +5,7 @@ import React from 'react';
 interface DocPageProps {
   docName?: string;
   children?: React.ReactNode;
-  [key: string]: any;
+  [key: string]: React.ReactNode | string | undefined;
 }
 
 /**
