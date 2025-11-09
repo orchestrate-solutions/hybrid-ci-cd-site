@@ -5,7 +5,7 @@
  */
 
 import { Context, Link, Chain } from 'codeuchain';
-import type { ConfigRecord, ConfigMetrics, ConfigPreview, ConfigCategory } from '../types/marketplace';
+import type { ConfigRecord, ConfigMetrics, ConfigPreview, ConfigCategory, ContributionType } from '../types/marketplace';
 
 /**
  * Input: Raw config data from filesystem/GitHub
@@ -131,13 +131,20 @@ class BuildRecordLink extends Link<
       return typeof cat === 'string' && valid.includes(cat);
     };
     
+    // Helper to validate type
+    const isValidType = (t: unknown): t is ContributionType => {
+      const valid = ['tool', 'schema', 'iac', 'llm', 'automation'];
+      return typeof t === 'string' && valid.includes(t);
+    };
+    
     const category: ConfigCategory = isValidCategory(metadata?.category) ? metadata.category : 'other';
+    const type: ContributionType = isValidType(parsed.type) ? parsed.type : 'tool';
     const record: ConfigRecord = {
       id: raw?.id ?? 'unknown',
       name: (metadata?.name as string) ?? 'Unnamed',
       description: (metadata?.description as string) ?? '',
       category,
-      type: (parsed.type as string) ?? 'tool',
+      type,
       tags: (metadata?.tags as string[]) ?? [],
       source: {
         type: 'github',
