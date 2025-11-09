@@ -5,7 +5,7 @@
  */
 
 import { Context, Link, Chain } from 'codeuchain';
-import type { ConfigRecord, ConfigMetrics, ConfigPreview } from '../types/marketplace';
+import type { ConfigRecord, ConfigMetrics, ConfigPreview, ConfigCategory } from '../types/marketplace';
 
 /**
  * Input: Raw config data from filesystem/GitHub
