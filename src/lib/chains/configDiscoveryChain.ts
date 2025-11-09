@@ -5,7 +5,7 @@
  */
 
 import { Context, Link, Chain } from 'codeuchain';
-import type { ConfigRecord, ConfigMetrics, ConfigPreview } from './marketplace';
+import type { ConfigRecord, ConfigMetrics, ConfigPreview } from '../types/marketplace';
 
 /**
  * Input: Raw config data from filesystem/GitHub
@@ -237,11 +237,14 @@ export class ConfigDiscoveryChain {
     const initialContext = new Context({ raw: input });
     const result = await this.chain.run(initialContext);
 
+    // Extract values from context
+    const contextDict = result.get('raw') ? { raw: result.get('raw') } : {};
+    
     return {
-      record: result.toDict().record as ConfigRecord,
-      preview: result.toDict().preview as ConfigPreview,
-      valid: result.toDict().valid as boolean,
-      errors: result.toDict().errors as string[],
+      record: result.get('record') as ConfigRecord,
+      preview: result.get('preview') as ConfigPreview,
+      valid: result.get('valid') ?? false as boolean,
+      errors: result.get('errors') ?? [] as string[],
     };
   }
 

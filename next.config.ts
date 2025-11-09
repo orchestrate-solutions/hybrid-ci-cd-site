@@ -6,7 +6,6 @@ const nextConfig = {
     unoptimized: true, // Disable image optimization (not supported in static export)
   },
   reactStrictMode: true,
-  swcMinify: true,
 };
 
 export default nextConfig;

@@ -261,12 +261,11 @@ class GitHubServiceImpl {
     return {
       stars: githubMetrics.stars,
       forks: githubMetrics.forks,
+      issues: githubMetrics.open_issues,
+      watchers: githubMetrics.watchers,
       downloads: 0, // Will be updated from platform tracking
-      installation_count: 0, // Will be updated from platform tracking
-      avg_rating: 0, // Will be updated from user reviews
-      review_count: 0, // Will be updated from user reviews
-      last_updated_at: githubMetrics.updated_at,
-      contributor_count: contributorCount,
+      installations: 0, // Will be updated from platform tracking
+      last_updated: new Date(githubMetrics.updated_at),
     };
   }
 
