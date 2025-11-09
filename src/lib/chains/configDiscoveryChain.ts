@@ -124,11 +124,19 @@ class BuildRecordLink extends Link<
     }
 
     const metadata = parsed.metadata as Record<string, unknown> | undefined;
+    
+    // Helper to validate category
+    const isValidCategory = (cat: unknown): cat is ConfigCategory => {
+      const valid = ['ci-cd', 'cloud-providers', 'monitoring', 'security', 'iac', 'databases', 'messaging', 'api-gateways', 'logging', 'ai-llm', 'observability', 'plugins', 'schemas', 'automations', 'layouts', 'other'];
+      return typeof cat === 'string' && valid.includes(cat);
+    };
+    
+    const category: ConfigCategory = isValidCategory(metadata?.category) ? metadata.category : 'other';
     const record: ConfigRecord = {
       id: raw?.id ?? 'unknown',
       name: (metadata?.name as string) ?? 'Unnamed',
       description: (metadata?.description as string) ?? '',
-      category: (metadata?.category as string) ?? 'other',
+      category,
       type: (parsed.type as string) ?? 'tool',
       tags: (metadata?.tags as string[]) ?? [],
       source: {
