@@ -3,6 +3,7 @@
  * 
  * Typed fetch wrapper for all jobs-related API endpoints.
  * Handles errors, timeouts, and response parsing.
+ * Supports demo mode for offline development.
  */
 
 import {
@@ -19,13 +20,34 @@ import {
   JobStats,
   BulkJobsResponse,
 } from '@/lib/types/jobs';
+import { getDemoJobsResponse, getDemoJobs, getDemoJobLogs } from '@/lib/mocks/demo-data';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+/**
+ * Check if demo mode is enabled in localStorage
+ */
+function isDemoModeEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const prefs = localStorage.getItem('hybrid-prefs');
+    if (!prefs) return false;
+    const parsed = JSON.parse(prefs);
+    return parsed.demoMode === true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * List all jobs with optional filtering, sorting, pagination
  */
 export async function listJobs(params: ListJobsParams = {}): Promise<ListJobsResponse> {
+  // Check demo mode first
+  if (isDemoModeEnabled()) {
+    return getDemoJobsResponse();
+  }
+
   const searchParams = new URLSearchParams();
 
   if (params.limit) searchParams.append('limit', params.limit.toString());
@@ -60,6 +82,16 @@ export async function listJobs(params: ListJobsParams = {}): Promise<ListJobsRes
  * Get a single job by ID
  */
 export async function getJob(jobId: string): Promise<GetJobResponse> {
+  // Check demo mode first
+  if (isDemoModeEnabled()) {
+    const demoJobs = getDemoJobs();
+    const job = demoJobs.find(j => j.id === jobId);
+    if (job) {
+      return { job };
+    }
+    throw new Error(`Job not found in demo: ${jobId}`);
+  }
+
   const url = `${BASE_URL}/api/dashboard/jobs/${jobId}`;
 
   try {

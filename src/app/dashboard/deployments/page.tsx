@@ -86,13 +86,13 @@ export default function DeploymentsPage() {
   }, [fetchDeployments]);
 
   const handleStatusFilterChange = (event: any) => {
+    setPage(0); // Reset page FIRST
     setStatusFilter(event.target.value);
-    setPage(0);
   };
 
   const handleEnvironmentFilterChange = (event: any) => {
+    setPage(0); // Reset page FIRST
     setEnvironmentFilter(event.target.value);
-    setPage(0);
   };
 
   const handleSort = (column: 'name' | 'status' | 'created_at') => {
@@ -131,9 +131,9 @@ export default function DeploymentsPage() {
   };
 
   const resetFilters = () => {
+    setPage(0); // Reset page FIRST
     setStatusFilter('ALL');
     setEnvironmentFilter('ALL');
-    setPage(0);
   };
 
   if (loading && deployments.length === 0) {

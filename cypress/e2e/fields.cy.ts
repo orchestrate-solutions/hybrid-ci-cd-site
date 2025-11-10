@@ -129,7 +129,8 @@ describe('Field Components E2E', () => {
         contents: Cypress.Buffer.from('test file content'),
         fileName: fileName,
       });
-      cy.get('input[type="file"]').should('have.value', expect.stringContaining(fileName));
+      // File inputs in browsers don't show the full path, just the filename
+      cy.get('input[type="file"]').should('have.value', fileName);
     });
   });
 

@@ -21,6 +21,9 @@
 // Add testing library commands
 import '@testing-library/cypress/add-commands';
 
+// Add real events plugin
+import 'cypress-real-events';
+
 declare global {
   namespace Cypress {
     interface Chainable {

@@ -1,4 +1,4 @@
-import { TextField as MuiTextField, TextFieldProps as MuiTextFieldProps } from '@mui/material';
+import { TextField as MuiTextField, TextFieldProps as MuiTextFieldProps, Skeleton } from '@mui/material';
 import React from 'react';
 
 export interface TextFieldProps extends Omit<MuiTextFieldProps, 'variant'> {
@@ -22,6 +22,8 @@ export interface TextFieldProps extends Omit<MuiTextFieldProps, 'variant'> {
   required?: boolean;
   /** Disabled state */
   disabled?: boolean;
+  /** Loading state - shows skeleton placeholder */
+  loading?: boolean;
   /** Input type */
   type?: string;
   /** Placeholder text */
@@ -51,6 +53,7 @@ export function TextField({
   fullWidth = true,
   required = false,
   disabled = false,
+  loading = false,
   type = 'text',
   placeholder,
   value,
@@ -59,6 +62,21 @@ export function TextField({
   onBlur,
   ...props
 }: TextFieldProps) {
+  // Show skeleton while loading by rendering the field hidden and wrapping in Skeleton
+  if (loading) {
+    return (
+      <Skeleton variant="rounded">
+        <MuiTextField
+          label={label}
+          variant={variant}
+          size={size}
+          fullWidth={fullWidth}
+          disabled
+          sx={{ visibility: 'hidden' }}
+        />
+      </Skeleton>
+    );
+  }
   // Extract aria-label to pass to the input element
   const ariaLabel = (props as any)['aria-label'];
   const restProps = Object.fromEntries(

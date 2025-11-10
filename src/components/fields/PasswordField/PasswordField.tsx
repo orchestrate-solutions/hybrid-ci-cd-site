@@ -1,4 +1,4 @@
-import { TextField as MuiTextField, TextFieldProps as MuiTextFieldProps, IconButton, InputAdornment } from '@mui/material';
+import { TextField as MuiTextField, TextFieldProps as MuiTextFieldProps, IconButton, InputAdornment, Skeleton } from '@mui/material';
 import { Visibility, VisibilityOff } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -6,6 +6,8 @@ export interface PasswordFieldProps extends Omit<MuiTextFieldProps, 'type'> {
   label: string;
   helperText?: string;
   error?: boolean;
+  /** Loading state - shows skeleton placeholder */
+  loading?: boolean;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -14,12 +16,28 @@ export function PasswordField({
   label,
   helperText,
   error = false,
+  loading = false,
   value,
   onChange,
   fullWidth = true,
   ...props
 }: PasswordFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
+
+  // Show skeleton while loading
+  if (loading) {
+    return (
+      <Skeleton variant="rounded">
+        <MuiTextField
+          label={label}
+          type="password"
+          fullWidth={fullWidth}
+          disabled
+          sx={{ visibility: 'hidden' }}
+        />
+      </Skeleton>
+    );
+  }
 
   return (
     <MuiTextField

@@ -14,5 +14,10 @@ export type { UseAgentsOptions, UseAgentsResult } from './useAgents';
 export { useDeployments } from './useDeployments';
 export type { UseDeploymentsOptions, UseDeploymentsResult } from './useDeployments';
 
-export { useDashboard } from './useDashboard';
-export type { DashboardMetrics, DashboardData, UseDashboardResult } from './useDashboard';
+// export { useDashboard } from './useDashboard';  // TODO: Restore when dashboard chain is implemented
+// export type { DashboardMetrics, DashboardData, UseDashboardResult } from './useDashboard';
+
+export { useRealTime } from './useRealTime';
+
+export { useUserPreferences } from './useUserPreferences';
+export type { UserPreferences, RealTimeMode } from './useUserPreferences';

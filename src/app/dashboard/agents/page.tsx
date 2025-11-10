@@ -65,8 +65,8 @@ export default function AgentsPage() {
   }, [fetchAgents]);
 
   const handleStatusFilterChange = (event: any) => {
+    setPage(0); // Reset page FIRST
     setStatusFilter(event.target.value);
-    setPage(0);
   };
 
   const handlePageChange = (_event: unknown, newPage: number) => {

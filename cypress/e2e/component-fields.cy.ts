@@ -136,9 +136,7 @@ describe('Field Components - Component Tests', () => {
 
     it('should have show/hide toggle button', () => {
       cy.navigate_to_story('components-fields-passwordfield--default');
-      cy.get('button[aria-label*="show"]').should('exist').or(
-        cy.get('button[aria-label*="hide"]').should('exist')
-      );
+      cy.get('button[aria-label*="show"], button[aria-label*="hide"]').should('exist');
     });
   });
 
@@ -168,9 +166,7 @@ describe('Field Components - Component Tests', () => {
 
     it('should display file upload area', () => {
       cy.navigate_to_story('components-fields-filefield--default');
-      cy.get('[data-testid="file-upload-area"]').should('exist').or(
-        cy.get('input[type="file"]').parent().should('exist')
-      );
+      cy.get('input[type="file"]').parent().should('exist');
     });
   });
 

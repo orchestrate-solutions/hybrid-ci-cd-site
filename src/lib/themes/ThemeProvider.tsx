@@ -129,7 +129,15 @@ export function ThemeProvider({ children, initialTheme }: ThemeProviderProps) {
 export function useTheme(): ThemeContextType {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
+    // During SSR or before hydration, return default theme
+    // This prevents hydration mismatches
+    const defaultTheme = getTheme(DEFAULT_THEME.name);
+    return {
+      theme: defaultTheme,
+      themeName: DEFAULT_THEME.name,
+      setTheme: async () => {}, // No-op during SSR
+      isDark: defaultTheme.isDark,
+    };
   }
   return context;
 }

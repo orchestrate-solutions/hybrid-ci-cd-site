@@ -106,24 +106,24 @@ export default function JobsPage() {
 
   // Handle filter changes
   const handleStatusFilterChange = (status: JobStatus | '') => {
+    setPage(0); // Reset page FIRST
     setFilters(prev => ({
       ...prev,
       status: status || undefined,
     }));
-    setPage(0);
   };
 
   const handlePriorityFilterChange = (priority: JobPriority | '') => {
+    setPage(0); // Reset page FIRST
     setFilters(prev => ({
       ...prev,
       priority: priority || undefined,
     }));
-    setPage(0);
   };
 
   const handleResetFilters = () => {
+    setPage(0); // Reset page FIRST
     setFilters({});
-    setPage(0);
   };
 
   // Handle sorting

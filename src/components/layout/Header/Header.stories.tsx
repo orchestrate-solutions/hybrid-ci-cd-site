@@ -34,7 +34,6 @@ export const Default: Story = {
   args: {
     logo: '🚀 Hybrid CI/CD',
     title: 'Dashboard',
-    onThemeToggle: () => console.log('Theme toggled'),
   },
 };
 
@@ -47,7 +46,6 @@ export const WithUserMenu: Story = {
       { label: 'Settings', onClick: () => alert('Settings clicked') },
       { label: 'Logout', onClick: () => alert('Logout clicked') },
     ],
-    onThemeToggle: () => console.log('Theme toggled'),
   },
 };
 
@@ -55,7 +53,6 @@ export const MinimalHeader: Story = {
   args: {
     logo: 'App',
     title: 'Home',
-    onThemeToggle: () => console.log('Theme toggled'),
   },
 };
 
@@ -66,7 +63,6 @@ export const WithLongTitle: Story = {
     userMenuItems: [
       { label: 'Profile', onClick: () => alert('Profile') },
     ],
-    onThemeToggle: () => console.log('Theme toggled'),
   },
 };
 
@@ -78,6 +74,7 @@ export const WithoutThemeToggle: Story = {
       { label: 'API Keys', onClick: () => alert('API Keys') },
       { label: 'Integrations', onClick: () => alert('Integrations') },
     ],
+    showThemeSwitcher: false,
   },
 };
 
@@ -92,7 +89,6 @@ export const WithMenuAndUserOptions: Story = {
       { label: '📋 Documentation', onClick: () => alert('Docs') },
       { label: '🚪 Logout', onClick: () => alert('Logout') },
     ],
-    onThemeToggle: () => console.log('Theme toggled'),
     onMenuToggle: () => console.log('Mobile menu toggled'),
   },
 };
@@ -105,7 +101,6 @@ export const Responsive: Story = {
       { label: 'Profile', onClick: () => alert('Profile') },
       { label: 'Logout', onClick: () => alert('Logout') },
     ],
-    onThemeToggle: () => console.log('Theme toggled'),
     onMenuToggle: () => console.log('Mobile menu toggled'),
   },
   parameters: {

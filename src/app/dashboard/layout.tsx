@@ -7,7 +7,8 @@ import {
   ListChecks, 
   Users, 
   GitBranch,
-  BookOpen
+  BookOpen,
+  Settings
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Header } from '@/components/layout/Header';
@@ -45,6 +46,12 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: BookOpen,
     href: '/docs/overview',
   },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: Settings,
+    href: '/dashboard/settings',
+  },
 ];
 
 export default function DashboardLayout({
@@ -61,6 +68,7 @@ export default function DashboardLayout({
     if (pathname.startsWith('/dashboard/jobs')) return 'jobs';
     if (pathname.startsWith('/dashboard/agents')) return 'agents';
     if (pathname.startsWith('/dashboard/deployments')) return 'deployments';
+    if (pathname.startsWith('/dashboard/settings')) return 'settings';
     if (pathname.startsWith('/docs')) return 'docs';
     return 'dashboard';
   };
@@ -78,10 +86,6 @@ export default function DashboardLayout({
         <Header
           logo="Hybrid CI/CD"
           title="Dashboard"
-          onThemeToggle={() => {
-            // Theme toggle handled by ThemeProvider context
-            document.documentElement.classList.toggle('dark');
-          }}
         />
       }
       sidebar={

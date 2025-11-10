@@ -5,6 +5,8 @@
  * Used by DashboardPage and dashboard chains.
  */
 
+import { getDemoMetrics } from '../mocks/demo-data';
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface DashboardMetrics {
@@ -30,9 +32,29 @@ export interface DeploymentMetrics {
 }
 
 /**
+ * Check if demo mode is enabled in localStorage
+ */
+function isDemoModeEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const prefs = localStorage.getItem('hybrid-prefs');
+    if (!prefs) return false;
+    const parsed = JSON.parse(prefs);
+    return parsed.demoMode === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get overall dashboard metrics
  */
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+  // Check demo mode first
+  if (isDemoModeEnabled()) {
+    return getDemoMetrics();
+  }
+
   const res = await fetch(`${BASE_URL}/api/metrics/dashboard/`);
   if (!res.ok) {
     throw new Error(`Failed to fetch dashboard metrics: ${res.status}`);

@@ -17,23 +17,17 @@ describe('Layout Components - Component Tests', () => {
 
     it('should contain header section', () => {
       cy.navigate_to_story('components-layout-appshell--default');
-      cy.get('[data-testid="app-shell-header"]').or(
-        cy.get('header').should('exist')
-      );
+      cy.get('header').should('exist');
     });
 
     it('should contain sidebar section', () => {
       cy.navigate_to_story('components-layout-appshell--default');
-      cy.get('[data-testid="app-shell-sidebar"]').or(
-        cy.get('aside, nav[role="navigation"]').should('exist')
-      );
+      cy.get('aside, nav[role="navigation"]').should('exist');
     });
 
     it('should contain main content area', () => {
       cy.navigate_to_story('components-layout-appshell--default');
-      cy.get('[data-testid="app-shell-content"]').or(
-        cy.get('main').should('exist')
-      );
+      cy.get('main').should('exist');
     });
 
     it('should have responsive grid layout', () => {
@@ -65,16 +59,12 @@ describe('Layout Components - Component Tests', () => {
   describe('Header Component', () => {
     it('should render header', () => {
       cy.navigate_to_story('components-layout-header--default');
-      cy.get('[data-testid="app-header"]').or(
-        cy.get('header').should('exist').should('be.visible')
-      );
+      cy.get('header').should('exist').should('be.visible');
     });
 
     it('should display logo/branding', () => {
       cy.navigate_to_story('components-layout-header--default');
-      cy.get('[data-testid="app-logo"]').or(
-        cy.get('img[alt*="logo"], h1').should('exist')
-      );
+      cy.get('img[alt*="logo"], h1').should('exist');
     });
 
     it('should display navigation items', () => {
@@ -84,18 +74,12 @@ describe('Layout Components - Component Tests', () => {
 
     it('should have user menu', () => {
       cy.navigate_to_story('components-layout-header--with-user-menu');
-      cy.get('[data-testid="user-menu"]').or(
-        cy.get('button[aria-label*="user"]').should('exist')
-      );
+      cy.get('button[aria-label*="user"]').should('exist');
     });
 
     it('should display theme toggle', () => {
       cy.navigate_to_story('components-layout-header--default');
-      cy.get('button[aria-label*="theme"]').or(
-        cy.get('button[aria-label*="dark"]').or(
-          cy.get('button[aria-label*="light"]').should('exist')
-        )
-      );
+      cy.get('button[aria-label*="theme"], button[aria-label*="dark"], button[aria-label*="light"]').should('exist');
     });
 
     it('should be sticky/fixed at top', () => {
@@ -115,9 +99,7 @@ describe('Layout Components - Component Tests', () => {
   describe('Sidebar Component', () => {
     it('should render sidebar', () => {
       cy.navigate_to_story('components-layout-sidebar--default');
-      cy.get('[data-testid="app-sidebar"]').or(
-        cy.get('aside, nav[role="navigation"]').should('exist').should('be.visible')
-      );
+      cy.get('aside, nav[role="navigation"]').should('exist').should('be.visible');
     });
 
     it('should display navigation links', () => {
@@ -139,28 +121,24 @@ describe('Layout Components - Component Tests', () => {
       cy.viewport('iphone-x');
       cy.navigate_to_story('components-layout-sidebar--default');
       // Sidebar should exist but may be hidden/collapsed
-      cy.get('[data-testid="app-sidebar"]').or(cy.get('aside')).should('exist');
+      cy.get('aside').should('exist');
     });
 
     it('should show expand/collapse toggle', () => {
       cy.navigate_to_story('components-layout-sidebar--collapsible');
-      cy.get('button[aria-label*="toggle"]').or(
-        cy.get('button[aria-label*="menu"]').should('exist')
-      );
+      cy.get('button[aria-label*="toggle"], button[aria-label*="menu"]').should('exist');
     });
 
     it('should have correct sidebar width', () => {
       cy.navigate_to_story('components-layout-sidebar--default');
-      cy.get('[data-testid="app-sidebar"]').or(cy.get('aside'))
+      cy.get('aside')
         .invoke('width')
         .should('be.greaterThan', 150); // Reasonable sidebar width
     });
 
     it('should have nested submenu items if available', () => {
       cy.navigate_to_story('components-layout-sidebar--with-submenus');
-      cy.get('[data-testid="submenu-item"]').or(
-        cy.get('ul ul, nav nav').should('have.length.greaterThan', 0)
-      );
+      cy.get('ul ul, nav nav').should('have.length.greaterThan', 0);
     });
 
     it('should be scrollable if content overflows', () => {

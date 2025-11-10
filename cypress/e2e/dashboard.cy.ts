@@ -83,8 +83,15 @@ describe('Dashboard Page E2E Tests', () => {
     it('should show loading state while fetching metrics', () => {
       // Intercept API call and delay response
       cy.intercept('GET', '**/api/metrics/**', (req) => {
-        req.reply((res) => {
-          res.delay(1000);
+        req.reply({
+          delay: 1000,
+          body: {
+            jobs_running: 5,
+            jobs_failed_today: 1,
+            deployments_today: 3,
+            queue_depth: 2,
+            average_wait_time_seconds: 45,
+          },
         });
       });
 
@@ -143,7 +150,7 @@ describe('Dashboard Page E2E Tests', () => {
 
   describe('Responsive Design', () => {
     it('should be responsive on mobile', () => {
-      cy.viewport('iphone-12');
+      cy.viewport('iphone-x');
       cy.get('main').should('be.visible');
       cy.get('[data-testid="metrics-running"]').should('be.visible');
     });

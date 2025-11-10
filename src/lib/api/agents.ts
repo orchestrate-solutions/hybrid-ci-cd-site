@@ -2,6 +2,7 @@
  * Agents API Client
  * 
  * Typed fetch wrappers for agent endpoints.
+ * Supports demo mode for offline development.
  */
 
 import type {
@@ -17,10 +18,31 @@ import type {
   ListAgentsParams,
   ListAgentPoolsParams,
 } from '@/lib/types/agents';
+import { getDemoAgentsResponse, getDemoAgents } from '@/lib/mocks/demo-data';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+/**
+ * Check if demo mode is enabled in localStorage
+ */
+function isDemoModeEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const prefs = localStorage.getItem('hybrid-prefs');
+    if (!prefs) return false;
+    const parsed = JSON.parse(prefs);
+    return parsed.demoMode === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function listAgents(params?: ListAgentsParams): Promise<ListAgentsResponse> {
+  // Check demo mode first
+  if (isDemoModeEnabled()) {
+    return getDemoAgentsResponse();
+  }
+
   const url = new URL(`${BASE_URL}/api/dashboard/agents`);
   if (params?.limit) url.searchParams.set('limit', params.limit.toString());
   if (params?.offset) url.searchParams.set('offset', params.offset.toString());
@@ -35,6 +57,16 @@ export async function listAgents(params?: ListAgentsParams): Promise<ListAgentsR
 }
 
 export async function getAgent(agentId: string): Promise<GetAgentResponse> {
+  // Check demo mode first
+  if (isDemoModeEnabled()) {
+    const demoAgents = getDemoAgents();
+    const agent = demoAgents.find(a => a.id === agentId);
+    if (agent) {
+      return { agent };
+    }
+    throw new Error(`Agent not found in demo: ${agentId}`);
+  }
+
   const res = await fetch(`${BASE_URL}/api/dashboard/agents/${agentId}`);
   if (!res.ok) throw new Error(`Agent not found: ${agentId}`);
   return res.json();

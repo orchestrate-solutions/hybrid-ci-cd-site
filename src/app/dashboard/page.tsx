@@ -1,87 +1,106 @@
 'use client';
 
 /**
- * Dashboard Page
+ * Dashboard Overview Page
  * 
- * Main dashboard showing system metrics and recent activity.
- * Powered by CodeUChain for state management and metrics API integration.
+ * Real-time dashboard with:
+ * - System metrics (jobs, deployments, agents)
+ * - Top 7 tool status cards
+ * - Real-time update control via user preferences
+ * - Placeholder slots for future features
+ * 
+ * Architecture:
+ * - Uses useRealTime() hook for polling
+ * - Respects user preferences (Live/Efficient/Off)
+ * - Modular component structure
  */
 
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, Grid, CircularProgress, Alert, Button } from '@mui/material';
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Alert,
+  Button,
+  Divider,
+} from '@mui/material';
 import { getDashboardMetrics, DashboardMetrics } from '@/lib/api/metrics';
+import { useRealTime } from '@/lib/hooks';
+import {
+  StatusCard,
+  ToolStatusCard,
+  ComingSoonCard,
+  RealTimeStatusBadge,
+} from '@/components/dashboard';
 
 /**
- * Metric Card Component (inline for now, can extract later)
+ * Tool Configuration (MVP - Static)
+ * Links point to external tools
+ * Statuses are mocked for now (can integrate with v2 backend API)
  */
-function MetricCard({
-  label,
-  value,
-  testId,
-}: {
-  label: string;
-  value: number | string;
-  testId: string;
-}) {
-  return (
-    <Box
-      data-testid={testId}
-      sx={{
-        p: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        textAlign: 'center',
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        '&:hover': {
-          boxShadow: 2,
-          transform: 'translateY(-2px)',
-        },
-      }}
-    >
-      <Typography variant="caption" color="textSecondary" display="block">
-        {label}
-      </Typography>
-      <Typography
-        variant="h4"
-        component="div"
-        data-testid="metric-value"
-        sx={{ fontWeight: 700, my: 1 }}
-      >
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </Typography>
-    </Box>
-  );
-}
+const TOOLS_CONFIG = [
+  {
+    id: 'github-actions',
+    tool: 'GitHub Actions',
+    icon: '🚀',
+    status: 'healthy' as const,
+    externalUrl: 'https://github.com',
+  },
+  {
+    id: 'terraform',
+    tool: 'Terraform',
+    icon: '🏗️',
+    status: 'healthy' as const,
+    externalUrl: 'https://www.terraform.io',
+  },
+  {
+    id: 'prometheus',
+    tool: 'Prometheus',
+    icon: '📊',
+    status: 'healthy' as const,
+    externalUrl: 'https://prometheus.io',
+  },
+  {
+    id: 'grafana',
+    tool: 'Grafana',
+    icon: '📈',
+    status: 'healthy' as const,
+    externalUrl: 'https://grafana.com',
+  },
+  {
+    id: 'docker',
+    tool: 'Docker',
+    icon: '🐳',
+    status: 'healthy' as const,
+    externalUrl: 'https://docker.com',
+  },
+  {
+    id: 'jenkins',
+    tool: 'Jenkins',
+    icon: '⚙️',
+    status: 'healthy' as const,
+    externalUrl: 'https://jenkins.io',
+  },
+  {
+    id: 'kubernetes',
+    tool: 'Kubernetes',
+    icon: '☸️',
+    status: 'healthy' as const,
+    externalUrl: 'https://kubernetes.io',
+  },
+];
 
 /**
- * Recent Activity Section (placeholder)
- */
-function RecentActivitySection() {
-  return (
-    <Box data-testid="activity-section" sx={{ mt: 4 }}>
-      <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
-        Recent Activity
-      </Typography>
-      <Box sx={{ color: 'textSecondary', fontStyle: 'italic' }}>
-        Activity will appear here as jobs and deployments run.
-      </Box>
-    </Box>
-  );
-}
-
-/**
- * Dashboard Page Component
+ * Dashboard Overview Page Component
  */
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load metrics
   const loadMetrics = async () => {
     try {
-      setLoading(true);
       setError(null);
       const data = await getDashboardMetrics();
       setMetrics(data);
@@ -94,87 +113,164 @@ export default function DashboardPage() {
     }
   };
 
+  // Set up real-time polling (respects user preference)
+  useRealTime({
+    onRefresh: loadMetrics,
+    enabled: true,
+  });
+
+  // Initial load
   useEffect(() => {
     loadMetrics();
-
-    // Auto-refresh every 60 seconds
-    const interval = setInterval(loadMetrics, 60000);
-    return () => clearInterval(interval);
   }, []);
 
   if (error) {
     return (
-      <Box component="main" sx={{ py: 4 }}>
-        <Container maxWidth="lg">
-          <Typography variant="h1" component="h1" sx={{ mb: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0 }}>
             Dashboard
           </Typography>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-          <Button variant="contained" onClick={loadMetrics}>
-            Retry
-          </Button>
-        </Container>
+          <RealTimeStatusBadge />
+        </Box>
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={loadMetrics}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Box>
     );
   }
 
   return (
-    <Box component="main" sx={{ py: 4 }}>
-      <Container maxWidth="lg">
-        {/* Page Title */}
-        <Typography variant="h1" component="h1" sx={{ mb: 3, fontWeight: 700 }}>
-          Dashboard
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Page Header */}
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+            Dashboard
+          </Typography>
+          <RealTimeStatusBadge />
+        </Box>
+        <Typography variant="body2" color="textSecondary">
+          Real-time overview of jobs, deployments, and infrastructure
         </Typography>
+      </Box>
 
-        {/* Metrics Section */}
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
+      {/* Metrics Section: System Status */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : metrics ? (
+        <Box data-testid="metrics-section">
+          {/* Heading */}
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            System Status
+          </Typography>
+
+          {/* Cards Grid */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+              gap: 2,
+            }}
+          >
+            <StatusCard
+              label="Jobs Running"
+              value={metrics.jobs_running}
+              status={metrics.jobs_running > 0 ? 'success' : 'info'}
+              icon="⚡"
+              testId="status-jobs-running"
+            />
+            <StatusCard
+              label="Failed Today"
+              value={metrics.jobs_failed_today}
+              status={metrics.jobs_failed_today > 0 ? 'error' : 'success'}
+              icon="⚠️"
+              testId="status-failed"
+            />
+            <StatusCard
+              label="Deployments"
+              value={metrics.deployments_today}
+              status="info"
+              icon="🚀"
+              testId="status-deployments"
+            />
+            <StatusCard
+              label="Queue Depth"
+              value={metrics.queue_depth}
+              status={metrics.queue_depth > 10 ? 'warning' : 'success'}
+              icon="📋"
+              testId="status-queue"
+            />
           </Box>
-        ) : metrics ? (
-          <>
-            <Box data-testid="metrics-section">
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <MetricCard
-                    label="Running"
-                    value={metrics.jobs_running}
-                    testId="metrics-running"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <MetricCard
-                    label="Failed Today"
-                    value={metrics.jobs_failed_today}
-                    testId="metrics-failed"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <MetricCard
-                    label="Deployments Today"
-                    value={metrics.deployments_today}
-                    testId="metrics-deployments"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <MetricCard
-                    label="Queue Depth"
-                    value={metrics.queue_depth}
-                    testId="metrics-queue"
-                  />
-                </Grid>
-              </Grid>
-            </Box>
+        </Box>
+      ) : (
+        <Alert severity="info">No metrics available</Alert>
+      )}
 
-            {/* Recent Activity */}
-            <RecentActivitySection />
-          </>
-        ) : (
-          <Alert severity="info">No data available</Alert>
-        )}
-      </Container>
+      <Divider />
+
+      {/* Tools Section */}
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+          Connected Tools
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
+            gap: 1.5,
+          }}
+        >
+          {TOOLS_CONFIG.map((toolConfig) => (
+            <ToolStatusCard
+              key={toolConfig.id}
+              tool={toolConfig.tool}
+              icon={toolConfig.icon}
+              status={toolConfig.status}
+              externalUrl={toolConfig.externalUrl}
+              testId={`tool-${toolConfig.id}`}
+            />
+          ))}
+        </Box>
+      </Box>
+
+      <Divider />
+
+      {/* Coming Soon Section */}
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+          What's Next
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+            gap: 2,
+          }}
+        >
+          <ComingSoonCard
+            title="AI Evaluations"
+            description="Auto-detect anomalies in logs and provide intelligent insights powered by LLM analysis."
+            version="Q1 2026"
+            testId="coming-soon-ai"
+          />
+          <ComingSoonCard
+            title="Advanced Approvals"
+            description="Multi-stage approval workflows with SLA enforcement and comprehensive audit trails."
+            version="v2"
+            testId="coming-soon-approvals"
+          />
+        </Box>
+      </Box>
     </Box>
   );
 }

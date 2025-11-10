@@ -3,6 +3,7 @@
  * 
  * Typed fetch wrapper for all deployments-related API endpoints.
  * Handles errors, timeouts, and response parsing.
+ * Supports demo mode for offline development.
  */
 
 import {
@@ -17,8 +18,24 @@ import {
   DeploymentStats,
   DeploymentHistory,
 } from '@/lib/types/deployments';
+import { getDemoDeploymentsResponse, getDemoDeployments } from '@/lib/mocks/demo-data';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+/**
+ * Check if demo mode is enabled in localStorage
+ */
+function isDemoModeEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const prefs = localStorage.getItem('hybrid-prefs');
+    if (!prefs) return false;
+    const parsed = JSON.parse(prefs);
+    return parsed.demoMode === true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * List all deployments with optional filtering, sorting, pagination
@@ -26,6 +43,11 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export async function listDeployments(
   params: ListDeploymentsParams = {}
 ): Promise<ListDeploymentsResponse> {
+  // Check demo mode first
+  if (isDemoModeEnabled()) {
+    return getDemoDeploymentsResponse();
+  }
+
   const searchParams = new URLSearchParams();
 
   if (params.limit) searchParams.append('limit', params.limit.toString());
@@ -60,6 +82,16 @@ export async function listDeployments(
  * Get a single deployment by ID
  */
 export async function getDeployment(deploymentId: string): Promise<GetDeploymentResponse> {
+  // Check demo mode first
+  if (isDemoModeEnabled()) {
+    const demoDeployments = getDemoDeployments();
+    const deployment = demoDeployments.find(d => d.id === deploymentId);
+    if (deployment) {
+      return { deployment };
+    }
+    throw new Error(`Deployment not found in demo: ${deploymentId}`);
+  }
+
   const url = `${BASE_URL}/api/dashboard/deployments/${deploymentId}`;
 
   try {

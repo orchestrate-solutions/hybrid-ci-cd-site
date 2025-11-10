@@ -13,17 +13,16 @@ import {
 import {
   Menu as MenuIcon,
   Close as CloseIcon,
-  Brightness4,
-  Brightness7,
   Person,
   LogOut,
 } from '@mui/icons-material';
+import { ThemeSwitcher } from '@/components/common/ThemeSwitcher';
 
 export interface HeaderProps {
   logo: string;
   title: string;
   userMenuItems?: Array<{ label: string; onClick: () => void }>;
-  onThemeToggle?: () => void;
+  showThemeSwitcher?: boolean;
   onMenuToggle?: () => void;
 }
 
@@ -31,7 +30,7 @@ export function Header({
   logo,
   title,
   userMenuItems,
-  onThemeToggle,
+  showThemeSwitcher = true,
   onMenuToggle,
 }: HeaderProps) {
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
@@ -60,7 +59,7 @@ export function Header({
         color: 'text.primary',
         borderBottom: 1,
         borderColor: 'divider',
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        zIndex: (theme) => theme.zIndex.drawer,
       }}
     >
       <Toolbar
@@ -129,17 +128,8 @@ export function Header({
           )}
 
           {/* Theme toggle */}
-          {onThemeToggle && (
-            <IconButton
-              onClick={onThemeToggle}
-              size="small"
-              sx={{
-                color: 'inherit',
-              }}
-              title="Toggle theme"
-            >
-              {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
-            </IconButton>
+          {showThemeSwitcher && (
+            <ThemeSwitcher size="small" />
           )}
 
           {/* User menu */}

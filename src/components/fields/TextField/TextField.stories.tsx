@@ -10,6 +10,7 @@ const meta = {
     error: { control: 'boolean' },
     helperText: { control: 'text' },
     disabled: { control: 'boolean' },
+    loading: { control: 'boolean' },
     required: { control: 'boolean' },
     variant: { control: { type: 'select', options: ['outlined', 'filled', 'standard'] } },
     size: { control: { type: 'select', options: ['small', 'medium'] } },
@@ -40,6 +41,22 @@ export const WithError: Story = {
     placeholder: 'Enter username',
     error: true,
     helperText: 'Username must be at least 3 characters',
+  },
+};
+
+export const Loading: Story = {
+  args: {
+    label: 'Loading field',
+    placeholder: 'This will populate shortly...',
+    loading: true,
+  },
+};
+
+export const LoadingSmall: Story = {
+  args: {
+    label: 'Compact loading field',
+    size: 'small',
+    loading: true,
   },
 };
 
@@ -86,3 +103,4 @@ export const Multiline: Story = {
     rows: 4,
   },
 };
+

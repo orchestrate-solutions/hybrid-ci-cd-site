@@ -41,13 +41,15 @@ export function AppShell({ header, sidebar, children, onSidebarToggle }: AppShel
         bgcolor: 'background.default',
       }}
     >
-      {/* Header - full width at top */}
+      {/* Header - full width at top, z-index below drawer for mobile */}
       <Box
         sx={{
           width: '100%',
           flexShrink: 0,
           borderBottom: 1,
           borderColor: 'divider',
+          position: 'relative',
+          zIndex: (theme) => theme.zIndex.drawer,
         }}
       >
         {React.cloneElement(header as React.ReactElement, {
@@ -63,7 +65,7 @@ export function AppShell({ header, sidebar, children, onSidebarToggle }: AppShel
           overflow: 'hidden',
         }}
       >
-        {/* Sidebar - left side, hidden on mobile */}
+        {/* Sidebar - left side, hidden on mobile, visible on desktop */}
         <Box
           component="aside"
           sx={{
@@ -80,7 +82,7 @@ export function AppShell({ header, sidebar, children, onSidebarToggle }: AppShel
           {sidebar}
         </Box>
 
-        {/* Mobile sidebar drawer */}
+        {/* Mobile sidebar drawer - drawer is above header on mobile */}
         {isMobile && (
           <>
             {/* Backdrop */}
@@ -88,8 +90,12 @@ export function AppShell({ header, sidebar, children, onSidebarToggle }: AppShel
               open={sidebarOpen}
               onClick={() => handleToggle(false)}
               sx={{
-                position: 'absolute',
-                zIndex: (theme) => theme.zIndex.drawer - 1,
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: (theme) => theme.zIndex.drawer + 1,
               }}
             />
 
@@ -98,6 +104,11 @@ export function AppShell({ header, sidebar, children, onSidebarToggle }: AppShel
               anchor="left"
               open={sidebarOpen}
               onClose={() => handleToggle(false)}
+              PaperProps={{
+                sx: {
+                  zIndex: (theme) => theme.zIndex.drawer + 2,
+                },
+              }}
               sx={{
                 '& .MuiDrawer-paper': {
                   width: SIDEBAR_WIDTH,
@@ -129,6 +140,8 @@ export function AppShell({ header, sidebar, children, onSidebarToggle }: AppShel
             overflowY: 'auto',
             overflowX: 'hidden',
             bgcolor: 'background.default',
+            // Root-level padding creates consistent "slots" for components
+            p: { xs: 2, sm: 3, md: 4 },
             '&::-webkit-scrollbar': {
               width: '8px',
             },

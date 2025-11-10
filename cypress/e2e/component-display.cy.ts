@@ -129,9 +129,7 @@ describe('Display Components - Component Tests', () => {
 
     it('should display plugin version', () => {
       cy.navigate_to_story('components-micro-plugincard--default');
-      cy.get('[data-testid="plugin-version"]').or(
-        cy.get('[data-testid="plugin-card"]').should('contain', /v\d+\.\d+/)
-      );
+      cy.get('[data-testid="plugin-card"]').should('contain', /v\d+\.\d+/);
     });
 
     it('should have install/enable button', () => {
@@ -141,9 +139,7 @@ describe('Display Components - Component Tests', () => {
 
     it('should display plugin status', () => {
       cy.navigate_to_story('components-micro-plugincard--enabled');
-      cy.get('[data-testid="plugin-status"]').or(
-        cy.get('[data-testid="status-indicator"]').should('exist')
-      );
+      cy.get('[data-testid="status-indicator"]').should('exist');
     });
   });
 
@@ -183,9 +179,7 @@ describe('Display Components - Component Tests', () => {
 
     it('should display iframe or preview area', () => {
       cy.navigate_to_story('components-micro-sandboxpreview--default');
-      cy.get('iframe').should('exist').or(
-        cy.get('[data-testid="preview-area"]').should('exist')
-      );
+      cy.get('iframe').should('exist');
     });
 
     it('should allow code input', () => {
@@ -195,9 +189,7 @@ describe('Display Components - Component Tests', () => {
 
     it('should display preview output', () => {
       cy.navigate_to_story('components-micro-sandboxpreview--default');
-      cy.get('[data-testid="preview-output"]').or(
-        cy.get('iframe').should('exist')
-      );
+      cy.get('iframe').should('exist');
     });
 
     it('should have action buttons (run, reset, etc)', () => {

@@ -1,4 +1,4 @@
-import { RadioGroup as MuiRadioGroup, FormControlLabel, Radio, FormControl, FormLabel, FormHelperText } from '@mui/material';
+import { RadioGroup as MuiRadioGroup, FormControlLabel, Radio, FormControl, FormLabel, FormHelperText, Skeleton } from '@mui/material';
 import React from 'react';
 
 export interface RadioGroupProps {
@@ -9,6 +9,8 @@ export interface RadioGroupProps {
   disabled?: boolean;
   error?: boolean;
   helperText?: string;
+  /** Loading state - shows skeleton placeholder */
+  loading?: boolean;
   row?: boolean;
 }
 
@@ -20,8 +22,29 @@ export function RadioGroup({
   disabled = false,
   error = false,
   helperText,
+  loading = false,
   row = false,
 }: RadioGroupProps) {
+  // Show skeleton while loading by rendering hidden and measuring
+  if (loading) {
+    return (
+      <Skeleton variant="rounded">
+        <FormControl disabled>
+          <FormLabel>{label}</FormLabel>
+          <MuiRadioGroup row={row} sx={{ visibility: 'hidden' }}>
+            {options.slice(0, 1).map((option) => (
+              <FormControlLabel
+                key={option.value}
+                value={option.value}
+                control={<Radio />}
+                label={option.label}
+              />
+            ))}
+          </MuiRadioGroup>
+        </FormControl>
+      </Skeleton>
+    );
+  }
   return (
     <FormControl error={error} disabled={disabled}>
       <FormLabel>{label}</FormLabel>

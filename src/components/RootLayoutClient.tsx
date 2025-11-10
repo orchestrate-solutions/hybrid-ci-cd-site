@@ -1,19 +1,22 @@
 'use client';
 
 import React from 'react';
+import { ThemeProvider } from '@/lib/themes/ThemeProvider';
 import { MuiThemeProvider } from './MuiThemeProvider';
 
 /**
  * Root Layout Client Wrapper
- * 
- * This component exists because MuiThemeProvider needs to be client-side
- * and must be inside ThemeProvider (which is in the server component).
- * This ensures proper provider hierarchy for hooks.
+ *
+ * This component wraps the entire app with theme providers.
+ * ThemeProvider provides custom theme context, MuiThemeProvider bridges to MUI.
+ * This ensures proper provider hierarchy for hooks in client components.
  */
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   return (
-    <MuiThemeProvider>
-      {children}
-    </MuiThemeProvider>
+    <ThemeProvider>
+      <MuiThemeProvider>
+        {children}
+      </MuiThemeProvider>
+    </ThemeProvider>
   );
 }
