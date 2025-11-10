@@ -144,9 +144,9 @@ export class AgentsChain {
     this.chain = new Chain();
 
     // Add links in sequence
-    this.chain.add_link(new FetchAgentsLink(), 'fetch');
-    this.chain.add_link(new FilterAgentsLink(), 'filter');
-    this.chain.add_link(new SortAgentsLink(), 'sort');
+    this.chain.addLink(new FetchAgentsLink(), 'fetch');
+    this.chain.addLink(new FilterAgentsLink(), 'filter');
+    this.chain.addLink(new SortAgentsLink(), 'sort');
 
     // Connect links
     this.chain.connect('fetch', 'filter', () => true);

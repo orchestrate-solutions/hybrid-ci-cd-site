@@ -153,9 +153,9 @@ export class DeploymentsChain {
     this.chain = new Chain();
 
     // Add links in sequence
-    this.chain.add_link(new FetchDeploymentsLink(), 'fetch');
-    this.chain.add_link(new FilterDeploymentsLink(), 'filter');
-    this.chain.add_link(new SortDeploymentsLink(), 'sort');
+    this.chain.addLink(new FetchDeploymentsLink(), 'fetch');
+    this.chain.addLink(new FilterDeploymentsLink(), 'filter');
+    this.chain.addLink(new SortDeploymentsLink(), 'sort');
 
     // Connect links
     this.chain.connect('fetch', 'filter', () => true);

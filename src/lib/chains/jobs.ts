@@ -143,9 +143,9 @@ export class JobsChain {
     this.chain = new Chain();
 
     // Add links in sequence
-    this.chain.add_link(new FetchJobsLink(), 'fetch');
-    this.chain.add_link(new FilterJobsLink(), 'filter');
-    this.chain.add_link(new SortJobsLink(), 'sort');
+    this.chain.addLink(new FetchJobsLink(), 'fetch');
+    this.chain.addLink(new FilterJobsLink(), 'filter');
+    this.chain.addLink(new SortJobsLink(), 'sort');
 
     // Connect links
     this.chain.connect('fetch', 'filter', () => true);
