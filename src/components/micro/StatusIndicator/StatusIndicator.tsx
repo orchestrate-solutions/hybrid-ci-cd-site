@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Box, Tooltip, useTheme } from '@mui/material';
 import { keyframes } from '@mui/system';
 
 export type Status = 'online' | 'offline' | 'idle' | 'busy' | 'error';
@@ -38,13 +38,27 @@ const pulseAnimation = keyframes`
  */
 function getStatusConfig(status: Status) {
   const configs = {
-    online: { color: 'success', label: 'Online' },
-    offline: { color: 'default', label: 'Offline' },
-    idle: { color: 'warning', label: 'Idle' },
-    busy: { color: 'info', label: 'Busy' },
-    error: { color: 'error', label: 'Error' },
+    online: { color: 'success' as const, label: 'Online' },
+    offline: { color: 'default' as const, label: 'Offline' },
+    idle: { color: 'warning' as const, label: 'Idle' },
+    busy: { color: 'info' as const, label: 'Busy' },
+    error: { color: 'error' as const, label: 'Error' },
   };
   return configs[status];
+}
+
+/**
+ * Get actual color from theme
+ */
+function getThemeColor(theme: any, colorKey: string): string {
+  const colorMap: Record<string, string> = {
+    success: theme.palette.success.main,
+    default: theme.palette.grey[500],
+    warning: theme.palette.warning.main,
+    info: theme.palette.info.main,
+    error: theme.palette.error.main,
+  };
+  return colorMap[colorKey] || theme.palette.grey[500];
 }
 
 /**
@@ -67,10 +81,11 @@ export function StatusIndicator({
   size = 'medium',
   pulse = false,
 }: StatusIndicatorProps) {
+  const theme = useTheme();
   const shouldPulse = pulse && (status === 'online' || status === 'busy');
   const config = getStatusConfig(status);
   const sizePixels = getSizePixels(size);
-  const colorProp = (theme: any) => theme.palette[config.color].main;
+  const themeColor = getThemeColor(theme, config.color);
 
   return (
     <Tooltip title={config.label} arrow>
@@ -86,8 +101,8 @@ export function StatusIndicator({
           width: sizePixels,
           height: sizePixels,
           borderRadius: '50%',
-          backgroundColor: colorProp,
-          boxShadow: (theme) => `0 0 ${sizePixels}px ${theme.palette[config.color].main}80`,
+          backgroundColor: themeColor,
+          boxShadow: `0 0 ${sizePixels}px ${themeColor}80`,
           animation: shouldPulse ? `${pulseAnimation} 2s ease-in-out infinite` : 'none',
         }}
       >
@@ -97,7 +112,7 @@ export function StatusIndicator({
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
-            backgroundColor: colorProp,
+            backgroundColor: themeColor,
             opacity: 0.7,
           }}
         />
