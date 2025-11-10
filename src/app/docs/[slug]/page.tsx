@@ -1,4 +1,6 @@
 import DocPage from "@/components/DocPage";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 interface DocPageParams {
   params: {
@@ -7,7 +9,18 @@ interface DocPageParams {
 }
 
 export default function Page({ params }: DocPageParams) {
-  return <DocPage docName={params.slug} />;
+  const content = getDocContent(params.slug);
+  return <DocPage docName={params.slug} content={content} />;
+}
+
+// Helper function to read markdown files at build time
+function getDocContent(slug: string): string {
+  try {
+    const docPath = join(process.cwd(), "docs", `${slug}.md`);
+    return readFileSync(docPath, "utf-8");
+  } catch (error) {
+    return `# ${slug}\n\nDocumentation not found.`;
+  }
 }
 
 // Generate static pages for all documentation
