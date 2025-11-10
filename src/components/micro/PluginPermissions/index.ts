@@ -1,2 +1,1 @@
-export { PluginPermissions } from './PluginPermissions';
-export type { Permission, RiskLevel } from './PluginPermissions';
+export { PluginPermissions, type Permission, type RiskLevel } from './PluginPermissions';

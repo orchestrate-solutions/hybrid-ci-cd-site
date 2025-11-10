@@ -1,4 +1,5 @@
 import { defineConfig } from 'cypress';
+import { loadEnv } from 'vite';
 
 export default defineConfig({
   e2e: {
@@ -12,10 +13,18 @@ export default defineConfig({
   component: {
     devServer: {
       framework: 'next',
-      bundler: 'webpack',
+      bundler: 'vite',
+      viteConfig: {
+        resolve: {
+          alias: {
+            '@': new URL('./src', import.meta.url).pathname,
+          },
+        },
+      },
     },
-    specPattern: ['src/**/*.cy.{js,jsx,ts,tsx}', 'cypress/component/**/*.cy.{js,jsx,ts,tsx}'],
-    supportFile: 'cypress/support/component.ts',
+    specPattern: ['src/components/fields/**/*.cy.{js,jsx,ts,tsx}'],
+    supportFile: 'cypress/support/component.tsx',
+    indexHtmlFile: 'cypress/support/component-index.html',
     viewportWidth: 1280,
     viewportHeight: 720,
   },

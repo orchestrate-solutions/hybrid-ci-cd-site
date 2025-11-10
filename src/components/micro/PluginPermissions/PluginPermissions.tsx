@@ -13,7 +13,7 @@ import {
   Checkbox,
 } from '@mui/material';
 import {
-  AlertCircle as AlertCircleIcon,
+  Info as InfoIcon,
   Warning as WarningIcon,
   ErrorOutline as ErrorOutlineIcon,
   CheckCircle as CheckCircleIcon,
@@ -51,7 +51,7 @@ function getRiskIcon(level: RiskLevel): React.ReactNode {
     case 'low':
       return <CheckCircleIcon />;
     case 'medium':
-      return <AlertCircleIcon />;
+      return <InfoIcon />;
     case 'high':
       return <WarningIcon />;
     case 'critical':
