@@ -24,8 +24,8 @@ import {
   InputLabel,
   TextField as MuiTextField,
 } from '@mui/material';
-import { JobsChain } from '../jobs';
-import type { Job, FilterOptions, SortOptions } from '../types';
+import { JobsChain } from './jobs.ts';
+import type { Job, FilterOptions, SortOptions } from './types.ts';
 
 /**
  * JobsChainDemo Component
