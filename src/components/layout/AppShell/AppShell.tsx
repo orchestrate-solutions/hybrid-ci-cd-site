@@ -1,4 +1,5 @@
 import React, { ReactNode, useState } from 'react';
+import { Box, Drawer, useTheme, useMediaQuery, Backdrop } from '@mui/material';
 
 interface AppShellProps {
   header: ReactNode;
@@ -21,60 +22,131 @@ interface AppShellProps {
  */
 export function AppShell({ header, sidebar, children, onSidebarToggle }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleToggle = (isOpen: boolean) => {
     setSidebarOpen(isOpen);
     onSidebarToggle?.(isOpen);
   };
 
+  const SIDEBAR_WIDTH = 256;
+
   return (
-    <div
-      className="flex h-screen flex-col"
-      style={{ backgroundColor: 'var(--bg-primary)' }}
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100vh',
+        flexDirection: 'column',
+        bgcolor: 'background.default',
+      }}
     >
       {/* Header - full width at top */}
-      <header className="w-full flex-shrink-0 border-b" style={{ borderColor: 'var(--ui-border)' }}>
+      <Box
+        sx={{
+          width: '100%',
+          flexShrink: 0,
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
         {React.cloneElement(header as React.ReactElement, {
           onMenuToggle: () => handleToggle(!sidebarOpen),
         })}
-      </header>
+      </Box>
 
       {/* Main content area - sidebar + content */}
-      <div className="flex flex-1 overflow-hidden">
+      <Box
+        sx={{
+          display: 'flex',
+          flex: 1,
+          overflow: 'hidden',
+        }}
+      >
         {/* Sidebar - left side, hidden on mobile */}
-        <aside
-          className="hidden md:flex flex-shrink-0 w-64 border-r overflow-y-auto"
-          style={{ borderColor: 'var(--ui-border)', backgroundColor: 'var(--bg-secondary)' }}
+        <Box
+          component="aside"
+          sx={{
+            display: { xs: 'none', md: 'flex' },
+            flexDirection: 'column',
+            flexShrink: 0,
+            width: SIDEBAR_WIDTH,
+            borderRight: 1,
+            borderColor: 'divider',
+            overflowY: 'auto',
+            bgcolor: 'background.paper',
+          }}
         >
           {sidebar}
-        </aside>
+        </Box>
 
         {/* Mobile sidebar drawer */}
-        {sidebarOpen && (
+        {isMobile && (
           <>
             {/* Backdrop */}
-            <div
-              className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            <Backdrop
+              open={sidebarOpen}
               onClick={() => handleToggle(false)}
+              sx={{
+                position: 'absolute',
+                zIndex: (theme) => theme.zIndex.drawer - 1,
+              }}
             />
+
             {/* Drawer */}
-            <aside
-              className="fixed left-0 top-16 bottom-0 w-64 z-40 overflow-y-auto md:hidden"
-              style={{ backgroundColor: 'var(--bg-secondary)' }}
+            <Drawer
+              anchor="left"
+              open={sidebarOpen}
+              onClose={() => handleToggle(false)}
+              sx={{
+                '& .MuiDrawer-paper': {
+                  width: SIDEBAR_WIDTH,
+                  bgcolor: 'background.paper',
+                  borderRight: 1,
+                  borderColor: 'divider',
+                },
+              }}
             >
-              {sidebar}
-            </aside>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  overflowY: 'auto',
+                }}
+              >
+                {sidebar}
+              </Box>
+            </Drawer>
           </>
         )}
 
         {/* Content area - main scrollable region */}
-        <main
-          className="flex-1 overflow-auto"
-          style={{ backgroundColor: 'var(--bg-primary)' }}
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            bgcolor: 'background.default',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              bgcolor: 'transparent',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              bgcolor: 'action.disabled',
+              borderRadius: '4px',
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+            },
+          }}
         >
           {children}
-        </main>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }

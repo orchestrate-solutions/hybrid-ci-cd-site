@@ -1,5 +1,23 @@
 import { useState } from 'react';
-import { Moon, Sun, Menu, X } from 'lucide-react';
+import {
+  AppBar,
+  Toolbar,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  Typography,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import {
+  Menu as MenuIcon,
+  Close as CloseIcon,
+  Brightness4,
+  Brightness7,
+  Person,
+  LogOut,
+} from '@mui/icons-material';
 
 export interface HeaderProps {
   logo: string;
@@ -9,92 +27,165 @@ export interface HeaderProps {
   onMenuToggle?: () => void;
 }
 
-export function Header({ 
-  logo, 
-  title, 
+export function Header({
+  logo,
+  title,
   userMenuItems,
   onThemeToggle,
-  onMenuToggle
+  onMenuToggle,
 }: HeaderProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchor(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);
+  };
 
   const handleMenuItemClick = (onClick: () => void) => {
     onClick();
-    setIsMenuOpen(false);
+    handleUserMenuClose();
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full h-16 flex items-center px-6 bg-header border-b border-divider">
-      {/* Logo */}
-      <div className="text-lg font-semibold mr-8">
-        {logo}
-      </div>
+    <AppBar
+      position="sticky"
+      elevation={0}
+      sx={{
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        borderBottom: 1,
+        borderColor: 'divider',
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+      }}
+    >
+      <Toolbar
+        disableGutters
+        sx={{
+          px: { xs: 2, md: 3 },
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+        }}
+      >
+        {/* Logo */}
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            fontWeight: 700,
+            fontSize: '1.1rem',
+            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            minWidth: 'fit-content',
+          }}
+        >
+          {logo}
+        </Typography>
 
-      {/* Title */}
-      <div className="flex-1 text-base truncate">
-        {title}
-      </div>
+        {/* Title */}
+        <Typography
+          variant="body1"
+          sx={{
+            flex: 1,
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            color: 'text.secondary',
+          }}
+        >
+          {title}
+        </Typography>
 
-      {/* Right side controls */}
-      <div className="flex items-center gap-2">
-        {/* Mobile menu toggle (hamburger) */}
-        {onMenuToggle && (
-          <button
-            onClick={onMenuToggle}
-            className="p-2 md:hidden rounded hover:bg-surface-secondary transition-colors"
-            aria-label="Toggle menu"
-            title="Toggle menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* Theme toggle */}
-        {onThemeToggle && (
-          <button
-            onClick={onThemeToggle}
-            className="p-2 rounded hover:bg-surface-secondary transition-colors"
-            aria-label="Toggle theme"
-            title="Toggle theme"
-          >
-            <Sun className="w-5 h-5 block dark:hidden" />
-            <Moon className="w-5 h-5 hidden dark:block" />
-          </button>
-        )}
-
-        {/* User menu */}
-        {userMenuItems && userMenuItems.length > 0 && (
-          <div className="relative">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded hover:bg-surface-secondary transition-colors"
-              aria-label="User menu"
-              title="User menu"
+        {/* Right side controls */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+          }}
+        >
+          {/* Mobile menu toggle (hamburger) */}
+          {onMenuToggle && (
+            <IconButton
+              onClick={onMenuToggle}
+              size="small"
+              sx={{
+                display: { xs: 'flex', md: 'none' },
+                color: 'inherit',
+              }}
+              title="Toggle menu"
             >
-              {isMenuOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
+              <MenuIcon />
+            </IconButton>
+          )}
 
-            {/* Dropdown menu */}
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-surface-primary border border-divider rounded shadow-lg overflow-hidden z-50">
+          {/* Theme toggle */}
+          {onThemeToggle && (
+            <IconButton
+              onClick={onThemeToggle}
+              size="small"
+              sx={{
+                color: 'inherit',
+              }}
+              title="Toggle theme"
+            >
+              {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+            </IconButton>
+          )}
+
+          {/* User menu */}
+          {userMenuItems && userMenuItems.length > 0 && (
+            <>
+              <IconButton
+                onClick={handleUserMenuOpen}
+                size="small"
+                sx={{
+                  color: 'inherit',
+                }}
+                title="User menu"
+              >
+                <Person />
+              </IconButton>
+
+              <Menu
+                anchorEl={userMenuAnchor}
+                open={Boolean(userMenuAnchor)}
+                onClose={handleUserMenuClose}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+              >
                 {userMenuItems.map((item, index) => (
-                  <button
+                  <MenuItem
                     key={index}
                     onClick={() => handleMenuItemClick(item.onClick)}
-                    className="w-full text-left px-4 py-2 hover:bg-surface-secondary transition-colors text-text-primary"
+                    sx={{
+                      py: 1,
+                      px: 2,
+                    }}
                   >
-                    {item.label}
-                  </button>
+                    <Typography variant="body2">{item.label}</Typography>
+                  </MenuItem>
                 ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </header>
+              </Menu>
+            </>
+          )}
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 }

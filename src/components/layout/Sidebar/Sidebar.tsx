@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { LucideIcon } from 'lucide-react';
-import { ChevronDown } from 'lucide-react';
+import {
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  Box,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import { ExpandLess, ExpandMore } from '@mui/icons-material';
 
 export interface SidebarItem {
   id: string;
@@ -18,6 +28,8 @@ export interface SidebarProps {
 
 export function Sidebar({ items, activeId, onNavigate }: SidebarProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleItemClick = (item: SidebarItem) => {
     if (item.submenu) {
@@ -29,53 +41,135 @@ export function Sidebar({ items, activeId, onNavigate }: SidebarProps) {
   };
 
   return (
-    <nav className="w-full flex-shrink-0 overflow-y-auto flex flex-col bg-surface-primary text-text-primary">
-      <nav className="flex-1 px-0 py-4 space-y-1">
+    <Box
+      component="nav"
+      sx={{
+        width: '100%',
+        flexShrink: 0,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.paper',
+        borderRight: 1,
+        borderColor: 'divider',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          bgcolor: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          bgcolor: 'action.disabled',
+          borderRadius: '4px',
+          '&:hover': {
+            bgcolor: 'action.hover',
+          },
+        },
+      }}
+    >
+      <List
+        component="div"
+        disablePadding
+        sx={{
+          flex: 1,
+          py: 1,
+          '& .MuiListItemButton-root': {
+            py: 1,
+            px: 2,
+            mb: 0.5,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          },
+        }}
+      >
         {items.map((item) => (
           <div key={item.id}>
-            {/* Main item button */}
-            <button
+            {/* Main item */}
+            <ListItemButton
               onClick={() => handleItemClick(item)}
-              className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-secondary ${
-                activeId === item.id ? 'bg-surface-secondary' : ''
-              }`}
-              title={item.label}
+              selected={activeId === item.id}
+              sx={{
+                backgroundColor: activeId === item.id ? 'action.selected' : 'transparent',
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.light',
+                  color: 'primary.main',
+                  fontWeight: 600,
+                  '&:hover': {
+                    backgroundColor: 'primary.light',
+                  },
+                },
+              }}
             >
               {item.icon && (
-                <item.icon className="w-5 h-5 flex-shrink-0" />
+                <ListItemIcon
+                  sx={{
+                    minWidth: 40,
+                    color: activeId === item.id ? 'primary.main' : 'inherit',
+                  }}
+                >
+                  <item.icon size={20} />
+                </ListItemIcon>
               )}
-              <span className="flex-1 text-left truncate">
-                {item.label}
-              </span>
+              <ListItemText
+                primary={item.label}
+                primaryTypographyProps={{
+                  variant: 'body2',
+                  fontWeight: activeId === item.id ? 600 : 500,
+                }}
+              />
               {item.submenu && (
-                <ChevronDown 
-                  className={`w-4 h-4 transition-transform flex-shrink-0 ${
-                    expandedId === item.id ? 'rotate-180' : ''
-                  }`}
-                />
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    ml: 1,
+                  }}
+                >
+                  {expandedId === item.id ? <ExpandLess /> : <ExpandMore />}
+                </Box>
               )}
-            </button>
+            </ListItemButton>
 
             {/* Submenu items */}
-            {item.submenu && expandedId === item.id && (
-              <div className="pl-9 space-y-1">
-                {item.submenu.map((subitem) => (
-                  <button
-                    key={subitem.id}
-                    onClick={() => onNavigate?.(subitem.id)}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors hover:bg-surface-secondary ${
-                      activeId === subitem.id ? 'bg-surface-secondary' : ''
-                    }`}
-                    title={subitem.label}
-                  >
-                    {subitem.label}
-                  </button>
-                ))}
-              </div>
+            {item.submenu && (
+              <Collapse in={expandedId === item.id} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  {item.submenu.map((subitem) => (
+                    <ListItemButton
+                      key={subitem.id}
+                      onClick={() => onNavigate?.(subitem.id)}
+                      selected={activeId === subitem.id}
+                      sx={{
+                        pl: 4,
+                        py: 0.75,
+                        backgroundColor: activeId === subitem.id ? 'action.selected' : 'transparent',
+                        '&.Mui-selected': {
+                          backgroundColor: 'primary.lighter',
+                          color: 'primary.main',
+                          fontWeight: 600,
+                          '&:hover': {
+                            backgroundColor: 'primary.lighter',
+                          },
+                        },
+                      }}
+                    >
+                      <ListItemText
+                        primary={subitem.label}
+                        primaryTypographyProps={{
+                          variant: 'body2',
+                          fontSize: '0.875rem',
+                        }}
+                      />
+                    </ListItemButton>
+                  ))}
+                </List>
+              </Collapse>
             )}
           </div>
         ))}
-      </nav>
-    </nav>
+      </List>
+    </Box>
   );
 }
