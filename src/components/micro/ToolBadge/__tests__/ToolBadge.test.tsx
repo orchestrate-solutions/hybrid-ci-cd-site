@@ -84,24 +84,24 @@ describe('ToolBadge Component (RED Phase)', () => {
   describe('Sizes', () => {
     it('renders small size variant', () => {
       const { container } = render(
-        <ToolBadge name="GitHub Actions" version="1.0.0" category="ci" size="sm" />
+        <ToolBadge name="GitHub Actions" version="1.0.0" category="ci" size="small" />
       );
 
-      expect(container.querySelector('[data-size="sm"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-size="small"]')).toBeInTheDocument();
     });
 
     it('renders medium size variant (default)', () => {
       const { container } = render(<ToolBadge name="GitHub Actions" version="1.0.0" category="ci" />);
 
-      expect(container.querySelector('[data-size="md"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-size="medium"]')).toBeInTheDocument();
     });
 
     it('renders large size variant', () => {
       const { container } = render(
-        <ToolBadge name="GitHub Actions" version="1.0.0" category="ci" size="lg" />
+        <ToolBadge name="GitHub Actions" version="1.0.0" category="ci" size="large" />
       );
 
-      expect(container.querySelector('[data-size="lg"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-size="large"]')).toBeInTheDocument();
     });
   });
 

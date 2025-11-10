@@ -55,21 +55,21 @@ describe('StatusIndicator Component (RED Phase)', () => {
 
   describe('Sizes', () => {
     it('renders small size', () => {
-      const { container } = render(<StatusIndicator status="online" size="sm" />);
+      const { container } = render(<StatusIndicator status="online" size="small" />);
 
-      expect(container.querySelector('[data-size="sm"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-size="small"]')).toBeInTheDocument();
     });
 
     it('renders medium size (default)', () => {
       const { container } = render(<StatusIndicator status="online" />);
 
-      expect(container.querySelector('[data-size="md"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-size="medium"]')).toBeInTheDocument();
     });
 
     it('renders large size', () => {
-      const { container } = render(<StatusIndicator status="online" size="lg" />);
+      const { container } = render(<StatusIndicator status="online" size="large" />);
 
-      expect(container.querySelector('[data-size="lg"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-size="large"]')).toBeInTheDocument();
     });
   });
 

@@ -5,13 +5,12 @@ import {
   CardActions,
   Typography,
   Chip,
-  Box,
-  Stack,
   Button,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  Checkbox,
 } from '@mui/material';
 import {
   AlertCircle as AlertCircleIcon,
@@ -19,7 +18,6 @@ import {
   ErrorOutline as ErrorOutlineIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import { CheckboxField } from '../../fields';
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
@@ -48,7 +46,7 @@ function getRiskColor(level: RiskLevel): 'success' | 'warning' | 'error' {
   }
 }
 
-function getRiskIcon(level: RiskLevel) {
+function getRiskIcon(level: RiskLevel): React.ReactNode {
   switch (level) {
     case 'low':
       return <CheckCircleIcon />;
@@ -100,9 +98,9 @@ export function PluginPermissions({
   }
 
   return (
-    <Card>
+    <Card data-testid="plugin-permissions-card">
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" component="h2" gutterBottom>
           Required Permissions
         </Typography>
         <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
@@ -110,12 +108,14 @@ export function PluginPermissions({
         </Typography>
 
         {/* Permissions List */}
-        <List sx={{ mb: 3 }}>
+        <List sx={{ mb: 3 }} data-testid="plugin-permissions">
           {permissions.map(permission => (
             <ListItem
               key={permission.id}
+              data-testid="permission-item"
               secondaryAction={
                 <Chip
+                  data-testid={`risk-badge-${permission.riskLevel}`}
                   icon={getRiskIcon(permission.riskLevel)}
                   label={permission.riskLevel.charAt(0).toUpperCase() + permission.riskLevel.slice(1)}
                   color={getRiskColor(permission.riskLevel)}
@@ -131,13 +131,16 @@ export function PluginPermissions({
               }}
             >
               <ListItemIcon>
-                <CheckboxField
-                  label=""
+                <Checkbox
                   checked={checkedPermissions.has(permission.id)}
                   onChange={() => handleToggle(permission.id)}
+                  inputProps={{
+                    'aria-label': `Grant permission: ${permission.name}`,
+                  }}
                 />
               </ListItemIcon>
               <ListItemText
+                data-testid="permission-description"
                 primary={permission.name}
                 secondary={permission.description}
               />
