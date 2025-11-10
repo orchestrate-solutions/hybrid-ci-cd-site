@@ -93,6 +93,7 @@ export function PluginCard({ plugin, onInstall }: PluginCardProps) {
             <Typography
               variant="h6"
               component="h3"
+              className="truncate"
               sx={{
                 fontWeight: 600,
                 overflow: 'hidden',
@@ -147,6 +148,7 @@ export function PluginCard({ plugin, onInstall }: PluginCardProps) {
         <Typography
           variant="body2"
           color="textSecondary"
+          className="line-clamp-2"
           sx={{
             mb: 2,
             display: '-webkit-box',

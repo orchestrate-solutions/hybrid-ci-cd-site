@@ -59,6 +59,12 @@ export function TextField({
   onBlur,
   ...props
 }: TextFieldProps) {
+  // Extract aria-label to pass to the input element
+  const ariaLabel = (props as any)['aria-label'];
+  const restProps = Object.fromEntries(
+    Object.entries(props).filter(([key]) => key !== 'aria-label')
+  );
+
   return (
     <MuiTextField
       label={label}
@@ -77,12 +83,17 @@ export function TextField({
       onChange={onChange}
       onFocus={onFocus}
       onBlur={onBlur}
+      inputProps={
+        ariaLabel
+          ? { 'aria-label': ariaLabel }
+          : undefined
+      }
       slotProps={{
         input: {
           'data-testid': 'text-field-input',
         },
       }}
-      {...props}
+      {...restProps}
     />
   );
 }

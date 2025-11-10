@@ -113,6 +113,7 @@ export function ConfigCard({
           <Typography
             variant={compact ? 'body2' : 'h6'}
             component="h3"
+            className="truncate"
             sx={{
               fontWeight: 600,
               flex: 1,

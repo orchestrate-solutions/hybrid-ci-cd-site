@@ -120,64 +120,67 @@ export function ConfigEditor({
 
   return (
     <Card data-testid="config-editor">
-      <CardContent>
-        {/* Header */}
-        <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 600 }}>
-          {toolName}
-        </Typography>
+      <form noValidate onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+        <CardContent>
+          {/* Header */}
+          <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 600 }}>
+            {toolName}
+          </Typography>
 
-        {/* Form fields */}
-        <Stack spacing={2} sx={{ mb: 3 }}>
-          {Object.entries(config).map(([key, value]) => (
-            <TextField
-              key={key}
-              label={formatFieldLabel(key)}
-              value={value}
-              type={getFieldType(key)}
-              onChange={(e) => handleFieldChange(key, e.target.value)}
-              error={!!errors[key]}
-              helperText={errors[key]}
-              fullWidth
-              aria-label={key}
-            />
-          ))}
+          {/* Form fields */}
+          <Stack spacing={2} sx={{ mb: 3 }}>
+            {Object.entries(config).map(([key, value]) => (
+              <TextField
+                key={key}
+                label={formatFieldLabel(key)}
+                value={value}
+                type={getFieldType(key)}
+                onChange={(e) => handleFieldChange(key, e.target.value)}
+                error={!!errors[key]}
+                helperText={errors[key]}
+                fullWidth
+                aria-label={formatFieldLabel(key)}
+              />
+            ))}
 
-          {!hasConfig && (
-            <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
-              No configuration fields for {toolName}
-            </Typography>
+            {!hasConfig && (
+              <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                No configuration fields for {toolName}
+              </Typography>
+            )}
+          </Stack>
+
+          {/* Validation message for empty form */}
+          {!isValid && hasConfig && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Please fill in all required fields
+            </Alert>
           )}
-        </Stack>
+        </CardContent>
 
-        {/* Validation message for empty form */}
-        {!isValid && hasConfig && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Please fill in all required fields
-          </Alert>
-        )}
-      </CardContent>
-
-      {/* Action buttons */}
-      <CardActions sx={{ gap: 1, justifyContent: 'flex-end' }}>
-        {onCancel && (
+        {/* Action buttons */}
+        <CardActions sx={{ gap: 1, justifyContent: 'flex-end' }}>
+          {onCancel && (
+            <Button
+              type="button"
+              variant="outlined"
+              startIcon={<CloseIcon />}
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
+          )}
           <Button
-            variant="outlined"
-            startIcon={<CloseIcon />}
-            onClick={handleCancel}
+            type="submit"
+            variant="contained"
+            color="success"
+            startIcon={<CheckIcon />}
+            disabled={!isValid}
           >
-            Cancel
+            Save
           </Button>
-        )}
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<CheckIcon />}
-          onClick={handleSave}
-          disabled={!isValid}
-        >
-          Save
-        </Button>
-      </CardActions>
+        </CardActions>
+      </form>
     </Card>
   );
 }
