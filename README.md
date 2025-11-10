@@ -107,6 +107,108 @@ npm run build
 npm run test
 ```
 
+## 🧪 Testing Workflow
+
+This project uses a **three-layer testing pyramid** for comprehensive coverage, ensuring both speed and confidence:
+
+### Layer 1: Unit Tests (Vitest) ⚡ Fast
+```bash
+npm run test:unit              # Run all Vitest tests
+npm run test:watch             # Watch mode (fast feedback loop)
+npm run test:unit -- src/lib   # Test specific directory
+```
+- **Speed**: 50ms per test (jsdom environment)
+- **Best for**: Logic, pure functions, edge cases, mocking
+- **Coverage target**: 80%+
+- **Current status**: ✅ 194 tests passing
+
+### Layer 2: Component Tests (Cypress) 🎯 Real Browser
+```bash
+npm run test:component         # Interactive UI (watch files)
+npm run test:component:run     # Headless batch run
+npm run test:component:watch   # Watch mode
+```
+- **Speed**: 200ms per test (real browser instance)
+- **Best for**: User interactions, state management, accessibility, plug-and-play validation
+- **Coverage target**: 80%+
+- **What's tested**: All 9 field components + 3 dashboard pages
+- **See**: [`CYPRESS_COMPONENT_TESTING.md`](CYPRESS_COMPONENT_TESTING.md) for detailed guide
+
+### Layer 3: E2E Tests (Cypress) 🌐 Full Workflows
+```bash
+npm run test:e2e:open          # Interactive UI (watch files)
+npm run test:e2e               # Headless batch run
+```
+- **Speed**: 2-5s per test (full application)
+- **Best for**: Full workflows, navigation, integration, critical paths
+- **Coverage target**: All critical user journeys
+- **Current coverage**: Agents, deployments, incidents, marketplace
+
+### Run All Tests
+```bash
+npm run test                   # Vitest + Cypress Component + Cypress E2E
+```
+
+### Testing Strategy by Component Type
+
+| Component Type | Use Layer | Why |
+|---|---|---|
+| **Button, Input, Text** | Layer 1 | Pure rendering logic |
+| **TextField, SelectField, DateField** | Layer 2 | User input, state changes |
+| **Form workflows** | Layer 2+3 | Component interactions + full page |
+| **Dashboard pages** | Layer 2+3 | Data display + navigation |
+| **Multi-step processes** | Layer 3 | Full workflows, state persistence |
+
+### Best Practices
+
+1. **Write tests FIRST** (Red → Green → Refactor)
+2. **Keep unit tests small** (fast feedback)
+3. **Use Layer 2 for component validation** (before E2E)
+4. **Mock API calls** in Layer 1 & 2, real server in Layer 3
+5. **Test accessibility** in all layers (keyboard nav, ARIA, semantic HTML)
+6. **Maintain 80%+ coverage** at all layers
+
+### Test File Organization
+
+```
+src/components/fields/TextField/
+├── TextField.tsx                          # Component
+├── TextField.stories.tsx                  # Storybook (visual docs)
+└── __tests__/
+    ├── TextField.test.tsx                 # Vitest (Layer 1)
+    └── TextField.cy.tsx                   # Cypress (Layer 2)
+```
+
+**Naming convention**:
+- `*.test.tsx` → Vitest unit tests
+- `*.cy.tsx` → Cypress component tests
+- `*.stories.tsx` → Storybook visual documentation
+
+### Debugging Tests
+
+```bash
+# Vitest with UI
+npm run test:unit -- --ui
+
+# Cypress interactive debugging
+npm run test:component                    # Opens Cypress UI
+npm run test:e2e:open                     # Opens Cypress UI (E2E)
+
+# Enable debug logs
+DEBUG=cypress:* npm run test:component:run
+```
+
+### Performance Targets
+
+| Metric | Target | Current |
+|--------|--------|---------|
+| **Unit test suite** | < 10s | ✅ ~8s |
+| **Component tests** | < 60s | ✅ Ready |
+| **E2E tests** | < 5min | ✅ Ready |
+| **Overall test run** | < 10min | ✅ ~12s unit |
+
+---
+
 ## 🔌 Plugin System
 
 ### Creating a Tool Configuration
