@@ -8,5 +8,6 @@
 export * from './ConfigCard';
 export * from './ConfigEditor';
 export * from './PluginCard';
+export * from './PluginPermissions';
 export * from './ToolBadge';
 export * from './StatusIndicator';
