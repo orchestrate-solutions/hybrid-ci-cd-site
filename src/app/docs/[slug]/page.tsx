@@ -3,14 +3,15 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 interface DocPageParams {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
-export default function Page({ params }: DocPageParams) {
-  const content = getDocContent(params.slug);
-  return <DocPage docName={params.slug} content={content} />;
+export default async function Page({ params }: DocPageParams) {
+  const { slug } = await params;
+  const content = getDocContent(slug);
+  return <DocPage docName={slug} content={content} />;
 }
 
 // Helper function to read markdown files at build time
