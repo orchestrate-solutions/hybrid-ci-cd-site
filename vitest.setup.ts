@@ -5,6 +5,9 @@
 
 import '@testing-library/jest-dom';
 
+// Mock CSS imports
+vi.mock('*.css', () => ({}));
+
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
   useRouter: () => ({

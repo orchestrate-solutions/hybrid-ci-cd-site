@@ -15,4 +15,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  css: {
+    modules: {
+      classNameStrategy: 'non-scoped',
+    },
+  },
+  optimizeDeps: {
+    exclude: ['@mui/x-data-grid'],
+  },
 });
