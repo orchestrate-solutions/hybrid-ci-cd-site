@@ -1,11 +1,12 @@
-import { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react';
 import { AppShell } from './AppShell';
 
-export default {
+const meta = {
   component: AppShell,
   tags: ['autodocs'],
 } satisfies Meta<typeof AppShell>;
 
+export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {

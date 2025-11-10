@@ -1,11 +1,12 @@
-import { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react';
 import { PluginPermissions } from './PluginPermissions';
 
-export default {
+const meta = {
   component: PluginPermissions,
   tags: ['autodocs'],
 } satisfies Meta<typeof PluginPermissions>;
 
+export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {

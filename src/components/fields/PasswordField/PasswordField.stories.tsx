@@ -1,11 +1,12 @@
-import { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react';
 import { PasswordField } from './PasswordField';
 
-export default {
+const meta = {
   component: PasswordField,
   tags: ['autodocs'],
 } satisfies Meta<typeof PasswordField>;
 
+export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {

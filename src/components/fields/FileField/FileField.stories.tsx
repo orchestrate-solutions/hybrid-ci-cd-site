@@ -1,11 +1,12 @@
-import { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react';
 import { FileField } from './FileField';
 
-export default {
+const meta = {
   component: FileField,
   tags: ['autodocs'],
 } satisfies Meta<typeof FileField>;
 
+export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {

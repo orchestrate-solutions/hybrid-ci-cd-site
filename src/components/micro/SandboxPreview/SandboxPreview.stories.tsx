@@ -1,11 +1,12 @@
-import { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react';
 import { SandboxPreview } from './SandboxPreview';
 
-export default {
+const meta = {
   component: SandboxPreview,
   tags: ['autodocs'],
 } satisfies Meta<typeof SandboxPreview>;
 
+export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
