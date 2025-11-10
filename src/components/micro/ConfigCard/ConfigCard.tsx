@@ -101,6 +101,7 @@ export function ConfigCard({
           <Box sx={{ pt: 0.25, flexShrink: 0 }}>
             <StatusIcon
               data-testid="status-indicator"
+              aria-label={`Status: ${statusConfig.label}`}
               sx={{
                 fontSize: compact ? 20 : 24,
                 color: `${statusConfig.color}.main`,
@@ -111,7 +112,7 @@ export function ConfigCard({
           {/* Title */}
           <Typography
             variant={compact ? 'body2' : 'h6'}
-            component="div"
+            component="h3"
             sx={{
               fontWeight: 600,
               flex: 1,

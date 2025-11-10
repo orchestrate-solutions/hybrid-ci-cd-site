@@ -92,7 +92,7 @@ export function PluginCard({ plugin, onInstall }: PluginCardProps) {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="h6"
-              component="div"
+              component="h3"
               sx={{
                 fontWeight: 600,
                 overflow: 'hidden',

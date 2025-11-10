@@ -82,7 +82,7 @@ export function SandboxPreview({ sandbox }: SandboxPreviewProps) {
         {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
           <Box>
-            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+            <Typography variant="h6" component="h3" sx={{ fontWeight: 600 }}>
               {sandbox.name}
             </Typography>
             <Typography variant="caption" color="textSecondary">
