@@ -1,14 +1,16 @@
 /**
- * StatusIndicator Component
+ * StatusIndicator Component - MUI-based visual status indicator
  * 
  * Visual indicator for status with theming support.
  * Shows online, offline, idle, busy, or error states with optional pulsing.
  */
 
 import React from 'react';
+import { Box, Tooltip } from '@mui/material';
+import { keyframes } from '@mui/system';
 
 export type Status = 'online' | 'offline' | 'idle' | 'busy' | 'error';
-export type IndicatorSize = 'sm' | 'md' | 'lg';
+export type IndicatorSize = 'small' | 'medium' | 'large';
 
 interface StatusIndicatorProps {
   /** Status to display */
@@ -20,86 +22,86 @@ interface StatusIndicatorProps {
 }
 
 /**
- * Get status color configuration
+ * Pulse animation keyframes
  */
-function getStatusColor(status: Status): string {
-  const colors = {
-    online: 'var(--semantic-success)',
-    offline: 'var(--ui-border)',
-    idle: 'var(--semantic-warning)',
-    busy: 'var(--semantic-info)',
-    error: 'var(--semantic-error)',
+const pulseAnimation = keyframes`
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+`;
+
+/**
+ * Get status config with MUI colors
+ */
+function getStatusConfig(status: Status) {
+  const configs = {
+    online: { color: 'success', label: 'Online' },
+    offline: { color: 'default', label: 'Offline' },
+    idle: { color: 'warning', label: 'Idle' },
+    busy: { color: 'info', label: 'Busy' },
+    error: { color: 'error', label: 'Error' },
   };
-  return colors[status];
+  return configs[status];
 }
 
 /**
- * Get status label for accessibility
+ * Get size in pixels
  */
-function getStatusLabel(status: Status): string {
-  const labels = {
-    online: 'Status: Online',
-    offline: 'Status: Offline',
-    idle: 'Status: Idle',
-    busy: 'Status: Busy',
-    error: 'Status: Error',
-  };
-  return labels[status];
-}
-
-/**
- * Get size styles
- */
-function getSizeClasses(size: IndicatorSize = 'md'): string {
+function getSizePixels(size: IndicatorSize = 'medium'): number {
   const sizes = {
-    sm: 'w-2 h-2',
-    md: 'w-3 h-3',
-    lg: 'w-4 h-4',
+    small: 8,
+    medium: 12,
+    large: 16,
   };
   return sizes[size];
 }
 
 /**
- * StatusIndicator component
+ * StatusIndicator component using MUI Box
  */
 export function StatusIndicator({
   status,
-  size = 'md',
+  size = 'medium',
   pulse = false,
 }: StatusIndicatorProps) {
   const shouldPulse = pulse && (status === 'online' || status === 'busy');
-  const color = getStatusColor(status);
-  const sizeClasses = getSizeClasses(size);
+  const config = getStatusConfig(status);
+  const sizePixels = getSizePixels(size);
+  const colorProp = (theme: any) => theme.palette[config.color].main;
 
   return (
-    <div
-      data-testid="status-indicator"
-      data-status={status}
-      data-size={size}
-      data-pulse={shouldPulse}
-      aria-label={getStatusLabel(status)}
-      className={`inline-block rounded-full ${sizeClasses} relative`}
-      style={{ backgroundColor: color }}
-    >
-      {/* Pulse animation ring (for active statuses) */}
-      {shouldPulse && (
-        <div
-          className={`absolute inset-0 rounded-full animate-pulse`}
-          style={{
-            backgroundColor: color,
-            opacity: 0.3,
+    <Tooltip title={config.label} arrow>
+      <Box
+        data-testid="status-indicator"
+        data-status={status}
+        data-size={size}
+        data-pulse={shouldPulse}
+        aria-label={`Status: ${config.label}`}
+        sx={{
+          display: 'inline-block',
+          position: 'relative',
+          width: sizePixels,
+          height: sizePixels,
+          borderRadius: '50%',
+          backgroundColor: colorProp,
+          boxShadow: (theme) => `0 0 ${sizePixels}px ${theme.palette[config.color].main}80`,
+          animation: shouldPulse ? `${pulseAnimation} 2s ease-in-out infinite` : 'none',
+        }}
+      >
+        {/* Inner dot for visual depth */}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            backgroundColor: colorProp,
+            opacity: 0.7,
           }}
         />
-      )}
-
-      {/* Inner dot for visual layering */}
-      <div
-        className={`absolute inset-0 rounded-full`}
-        style={{
-          backgroundColor: color,
-          boxShadow: `0 0 ${size === 'sm' ? '4px' : size === 'lg' ? '8px' : '6px'} ${color}99`,
-        }}
-      />
-    </div>
+      </Box>
+    </Tooltip>
   );
 }

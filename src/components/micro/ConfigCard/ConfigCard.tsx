@@ -98,7 +98,7 @@ export function ConfigCard({
         {/* Header with status and title */}
         <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 1.5 }}>
           {/* Status icon */}
-          <Box sx={{ pt: 0.25, flex Shrink: 0 }}>
+          <Box sx={{ pt: 0.25, flexShrink: 0 }}>
             <StatusIcon
               data-testid="status-indicator"
               sx={{
@@ -129,7 +129,7 @@ export function ConfigCard({
             color={statusConfig.color}
             size="small"
             variant="outlined"
-            sx={{ flex Shrink: 0 }}
+            sx={{ flexShrink: 0 }}
           />
         </Stack>
 

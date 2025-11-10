@@ -1,5 +1,20 @@
 import React from 'react';
-import { Star, Download, CheckCircle2, ArrowUp } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+  Chip,
+  Box,
+  Stack,
+} from '@mui/material';
+import {
+  Star as StarIcon,
+  GetApp as DownloadIcon,
+  CheckCircle as CheckCircleIcon,
+  TrendingUp as UpdateIcon,
+} from '@mui/icons-material';
 
 export type PluginStatus = 'available' | 'installed' | 'update-available';
 
@@ -21,111 +36,153 @@ interface PluginCardProps {
   onInstall: (pluginId: string) => void;
 }
 
+/**
+ * Get button label based on plugin status
+ */
+function getButtonLabel(status: PluginStatus): string {
+  switch (status) {
+    case 'available':
+      return 'Install';
+    case 'installed':
+      return 'Configure';
+    case 'update-available':
+      return 'Update';
+  }
+}
+
+/**
+ * Get button color based on plugin status
+ */
+function getButtonColor(status: PluginStatus): 'primary' | 'info' | 'warning' {
+  switch (status) {
+    case 'available':
+      return 'primary';
+    case 'installed':
+      return 'info';
+    case 'update-available':
+      return 'warning';
+  }
+}
+
+/**
+ * PluginCard component using MUI X
+ */
 export function PluginCard({ plugin, onInstall }: PluginCardProps) {
   const handleClick = () => {
     onInstall(plugin.id);
   };
 
-  const getButtonLabel = () => {
-    switch (plugin.status) {
-      case 'available':
-        return 'Install';
-      case 'installed':
-        return 'Configure';
-      case 'update-available':
-        return 'Update';
-    }
-  };
-
-  const getButtonColor = () => {
-    switch (plugin.status) {
-      case 'available':
-        return 'var(--brand-primary)';
-      case 'installed':
-        return 'var(--semantic-info)';
-      case 'update-available':
-        return 'var(--semantic-warning)';
-    }
-  };
-
   return (
-    <div
-      className="rounded-lg border p-4 transition-all hover:shadow-lg"
-      style={{
-        backgroundColor: 'var(--bg-secondary)',
-        borderColor: 'var(--ui-border)',
-        boxShadow: `0 1px 3px var(--ui-shadow)`,
+    <Card
+      data-testid={`plugin-card-${plugin.id}`}
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          boxShadow: 3,
+          transform: 'translateY(-2px)',
+        },
       }}
     >
-      {/* Header */}
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex-1">
-          <h3
-            className="truncate text-lg font-semibold"
-            style={{ color: 'var(--text-primary)' }}
-            data-testid="plugin-name"
-          >
-            {plugin.name}
-          </h3>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            by {plugin.author}
-          </p>
-        </div>
-        {plugin.verified && (
-          <div className="ml-2 flex items-center gap-1 rounded-full px-2 py-1" style={{ backgroundColor: 'rgba(76, 175, 80, 0.1)' }}>
-            <CheckCircle2 size={14} style={{ color: 'var(--semantic-success)' }} />
-            <span className="text-xs font-medium" style={{ color: 'var(--semantic-success)' }}>
-              Verified
-            </span>
-          </div>
+      <CardContent sx={{ flex: 1, pb: 1 }}>
+        {/* Header with name and verified badge */}
+        <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 1.5 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                fontWeight: 600,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+              data-testid="plugin-name"
+            >
+              {plugin.name}
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              by {plugin.author}
+            </Typography>
+          </Box>
+          {plugin.verified && (
+            <Chip
+              icon={<CheckCircleIcon />}
+              label="Verified"
+              color="success"
+              size="small"
+              variant="filled"
+              sx={{ flexShrink: 0 }}
+            />
+          )}
+        </Stack>
+
+        {/* Status Badge */}
+        {plugin.status === 'update-available' && (
+          <Box sx={{ mb: 1.5 }}>
+            <Chip
+              icon={<UpdateIcon />}
+              label="Update Available"
+              color="warning"
+              size="small"
+              variant="outlined"
+            />
+          </Box>
         )}
-      </div>
 
-      {/* Status Badge */}
-      {plugin.status === 'update-available' && (
-        <div className="mb-2 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium" style={{ backgroundColor: 'rgba(255, 193, 7, 0.1)', color: 'var(--semantic-warning)' }}>
-          <ArrowUp size={12} />
-          Update Available
-        </div>
-      )}
+        {/* Version info */}
+        <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Typography variant="caption" color="textSecondary">
+            v{plugin.version}
+          </Typography>
+          {plugin.installedVersion && plugin.status === 'update-available' && (
+            <Typography variant="caption" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+              installed: v{plugin.installedVersion}
+            </Typography>
+          )}
+        </Box>
 
-      {/* Version and Downloads */}
-      <div className="mb-3 flex items-center gap-4 text-sm">
-        <span style={{ color: 'var(--text-secondary)' }}>v{plugin.version}</span>
-        {plugin.installedVersion && plugin.status === 'update-available' && (
-          <span style={{ color: 'var(--text-tertiary)' }}>installed: v{plugin.installedVersion}</span>
-        )}
-      </div>
+        {/* Description */}
+        <Typography
+          variant="body2"
+          color="textSecondary"
+          sx={{
+            mb: 2,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+          data-testid="plugin-description"
+        >
+          {plugin.description}
+        </Typography>
 
-      {/* Description */}
-      <p
-        className="mb-3 line-clamp-2 text-sm"
-        style={{ color: 'var(--text-secondary)' }}
-        data-testid="plugin-description"
-      >
-        {plugin.description}
-      </p>
-
-      {/* Stats */}
-      <div className="mb-4 flex items-center gap-6 text-sm">
-        <div className="flex items-center gap-1">
-          <Star size={16} style={{ color: 'var(--semantic-warning)' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>{plugin.stars}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Download size={16} style={{ color: 'var(--semantic-info)' }} />
-          <span style={{ color: 'var(--text-secondary)' }}>{plugin.downloads} downloads</span>
-        </div>
-      </div>
+        {/* Stats */}
+        <Stack direction="row" spacing={3} sx={{ color: 'textSecondary' }}>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+            <Typography variant="caption">{plugin.stars}</Typography>
+          </Stack>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <DownloadIcon sx={{ fontSize: 16, color: 'info.main' }} />
+            <Typography variant="caption">{plugin.downloads} downloads</Typography>
+          </Stack>
+        </Stack>
+      </CardContent>
 
       {/* Action Button */}
-      <button
-        onClick={handleClick}
-        className="w-full rounded px-4 py-2 font-medium text-white transition-opacity hover:opacity-90"
-        style={{ backgroundColor: getButtonColor() }}
-      >
-        {getButtonLabel()}
-      </button>
-    </div>
+      <CardActions sx={{ pt: 0 }}>
+        <Button
+          fullWidth
+          variant="contained"
+          color={getButtonColor(plugin.status)}
+          onClick={handleClick}
+        >
+          {getButtonLabel(plugin.status)}
+        </Button>
+      </CardActions>
+    </Card>
   );
 }

@@ -1,12 +1,26 @@
 /**
- * ConfigEditor Component
+ * ConfigEditor Component - MUI X-based form editor
  * 
  * Form for editing tool configuration with dynamic field generation,
- * validation, and theme support.
+ * validation, and theme support. Composed from TextField microcomponent.
  */
 
 import React, { useState, useCallback } from 'react';
-import { Check, X } from 'lucide-react';
+import {
+  Box,
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Stack,
+  Button,
+  Alert,
+} from '@mui/material';
+import {
+  Check as CheckIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
+import { TextField } from '../../fields';
 
 interface ConfigEditorProps {
   /** Name of tool being configured */
@@ -20,7 +34,22 @@ interface ConfigEditorProps {
 }
 
 /**
- * ConfigEditor component
+ * Format field key to readable label
+ */
+function formatFieldLabel(key: string): string {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
+/**
+ * Determine field type based on key name
+ */
+function getFieldType(key: string): 'password' | 'text' {
+  const lowerKey = key.toLowerCase();
+  return lowerKey.includes('token') || lowerKey.includes('password') ? 'password' : 'text';
+}
+
+/**
+ * ConfigEditor component using MUI Card + TextField
  */
 export function ConfigEditor({
   toolName,
@@ -90,103 +119,65 @@ export function ConfigEditor({
   const hasConfig = Object.keys(config).length > 0;
 
   return (
-    <form
-      data-testid="config-editor"
-      className="bg-[var(--bg-primary)] rounded-lg border border-[var(--ui-border)] p-6"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSave();
-      }}
-    >
-      {/* Header */}
-      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-        {toolName}
-      </h3>
+    <Card data-testid="config-editor">
+      <CardContent>
+        {/* Header */}
+        <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 600 }}>
+          {toolName}
+        </Typography>
 
-      {/* Form fields */}
-      <div className="space-y-4 mb-6">
-        {Object.entries(config).map(([key, value]) => (
-          <div key={key}>
-            <label
-              htmlFor={key}
-              className="block text-sm font-medium text-[var(--text-primary)] mb-1"
-              aria-label={key}
-            >
-              {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-            </label>
-            <input
-              id={key}
-              type={key.toLowerCase().includes('token') || key.toLowerCase().includes('password') ? 'password' : 'text'}
+        {/* Form fields */}
+        <Stack spacing={2} sx={{ mb: 3 }}>
+          {Object.entries(config).map(([key, value]) => (
+            <TextField
+              key={key}
+              label={formatFieldLabel(key)}
               value={value}
+              type={getFieldType(key)}
               onChange={(e) => handleFieldChange(key, e.target.value)}
+              error={!!errors[key]}
+              helperText={errors[key]}
+              fullWidth
               aria-label={key}
-              className={`
-                w-full px-3 py-2 rounded border
-                bg-[var(--bg-secondary)] text-[var(--text-primary)]
-                placeholder-[var(--text-tertiary)]
-                focus:outline-none focus:ring-2
-                ${
-                  errors[key]
-                    ? 'border-[var(--semantic-error)] focus:ring-[var(--semantic-error)]'
-                    : 'border-[var(--ui-border)] focus:ring-[var(--brand-primary)]'
-                }
-              `}
             />
-            {errors[key] && (
-              <p className="text-xs text-[var(--semantic-error)] mt-1">{errors[key]}</p>
-            )}
-          </div>
-        ))}
+          ))}
 
-        {!hasConfig && (
-          <p className="text-sm text-[var(--text-tertiary)] italic">
-            No configuration fields for {toolName}
-          </p>
-        )}
-      </div>
+          {!hasConfig && (
+            <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+              No configuration fields for {toolName}
+            </Typography>
+          )}
+        </Stack>
 
-      {/* Validation message for empty form */}
-      {!isValid && hasConfig && (
-        <div className="bg-[var(--semantic-error)]/10 border border-[var(--semantic-error)] rounded p-3 mb-6">
-          <p className="text-sm text-[var(--semantic-error)]">
+        {/* Validation message for empty form */}
+        {!isValid && hasConfig && (
+          <Alert severity="error" sx={{ mb: 2 }}>
             Please fill in all required fields
-          </p>
-        </div>
-      )}
+          </Alert>
+        )}
+      </CardContent>
 
       {/* Action buttons */}
-      <div className="flex gap-3 justify-end">
+      <CardActions sx={{ gap: 1, justifyContent: 'flex-end' }}>
         {onCancel && (
-          <button
-            type="button"
+          <Button
+            variant="outlined"
+            startIcon={<CloseIcon />}
             onClick={handleCancel}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded border
-              text-[var(--text-primary)] border-[var(--ui-border)]
-              hover:bg-[var(--bg-secondary)] transition-colors
-            `}
           >
-            <X size={16} />
             Cancel
-          </button>
+          </Button>
         )}
-        <button
-          type="submit"
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<CheckIcon />}
+          onClick={handleSave}
           disabled={!isValid}
-          className={`
-            flex items-center gap-2 px-4 py-2 rounded
-            transition-colors
-            ${
-              isValid
-                ? 'bg-[var(--semantic-success)] text-white hover:opacity-90'
-                : 'bg-[var(--ui-border)] text-[var(--text-tertiary)] cursor-not-allowed'
-            }
-          `}
         >
-          <Check size={16} />
           Save
-        </button>
-      </div>
-    </form>
+        </Button>
+      </CardActions>
+    </Card>
   );
 }

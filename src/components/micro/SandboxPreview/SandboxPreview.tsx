@@ -1,5 +1,23 @@
 import React from 'react';
-import { Lock, Network, Database, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  Typography,
+  Chip,
+  Box,
+  Stack,
+  Paper,
+  Grid,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material';
+import {
+  Lock as LockIcon,
+  Public as NetworkIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+} from '@mui/icons-material';
 
 export type IsolationLevel = 'strict' | 'standard' | 'moderate';
 export type SandboxStatus = 'active' | 'inactive';
@@ -30,251 +48,229 @@ interface SandboxPreviewProps {
   sandbox: Sandbox;
 }
 
-function getIsolationColor(level: IsolationLevel): string {
+/**
+ * Get isolation color for MUI color system
+ */
+function getIsolationColor(level: IsolationLevel): 'success' | 'info' | 'warning' {
   switch (level) {
     case 'strict':
-      return 'var(--semantic-success)';
+      return 'success';
     case 'standard':
-      return 'var(--semantic-info)';
+      return 'info';
     case 'moderate':
-      return 'var(--semantic-warning)';
+      return 'warning';
   }
 }
 
-function getStatusIcon(status: SandboxStatus) {
-  return status === 'active' ? (
-    <CheckCircle2 size={16} style={{ color: 'var(--semantic-success)' }} />
-  ) : (
-    <XCircle size={16} style={{ color: 'var(--semantic-error)' }} />
-  );
+/**
+ * Get isolation label
+ */
+function getIsolationLabel(level: IsolationLevel): string {
+  return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
+/**
+ * SandboxPreview component using MUI X
+ */
 export function SandboxPreview({ sandbox }: SandboxPreviewProps) {
+  const isolationColor = getIsolationColor(sandbox.isolationLevel);
+  const isActive = sandbox.status === 'active';
+
   return (
-    <div
-      className="space-y-4 rounded-lg border p-6"
-      style={{
-        backgroundColor: 'var(--bg-secondary)',
-        borderColor: 'var(--ui-border)',
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {sandbox.name}
-          </h3>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            ID: {sandbox.id}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {getStatusIcon(sandbox.status)}
-          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-            {sandbox.status === 'active' ? 'Active' : 'Inactive'}
-          </span>
-        </div>
-      </div>
+    <Card>
+      <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
+          <Box>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+              {sandbox.name}
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              ID: {sandbox.id}
+            </Typography>
+          </Box>
+          <Chip
+            icon={isActive ? <CheckCircleIcon /> : <CancelIcon />}
+            label={isActive ? 'Active' : 'Inactive'}
+            color={isActive ? 'success' : 'error'}
+            size="small"
+          />
+        </Stack>
 
-      {/* Isolation badge */}
-      <div className="flex items-center gap-2">
-        <Lock size={16} style={{ color: getIsolationColor(sandbox.isolationLevel) }} />
-        <div
-          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
-          style={{
-            backgroundColor: `${getIsolationColor(sandbox.isolationLevel)}20`,
-            color: getIsolationColor(sandbox.isolationLevel),
-          }}
-        >
-          {sandbox.isolationLevel.charAt(0).toUpperCase() + sandbox.isolationLevel.slice(1)} Isolation
-        </div>
-      </div>
+        {/* Isolation Level Badge */}
+        <Box sx={{ mb: 3, display: 'flex', gap: 1, alignItems: 'center' }}>
+          <LockIcon sx={{ fontSize: 16 }} />
+          <Chip
+            label={`${getIsolationLabel(sandbox.isolationLevel)} Isolation`}
+            color={isolationColor}
+            size="small"
+            variant="outlined"
+          />
+        </Box>
 
-      {/* Resources */}
-      <div>
-        <h4 className="mb-2 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-          Resources
-        </h4>
-        <div
-          className="grid grid-cols-3 gap-3 rounded border p-3"
-          style={{
-            backgroundColor: 'var(--bg-primary)',
-            borderColor: 'var(--ui-border)',
-          }}
-        >
-          <div>
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              CPU
-            </p>
-            <p className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>
-              {sandbox.resources.cpuLimit}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              Memory
-            </p>
-            <p className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>
-              {sandbox.resources.memoryLimit}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              Disk
-            </p>
-            <p className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>
-              {sandbox.resources.diskLimit}
-            </p>
-          </div>
-        </div>
-      </div>
+        {/* Resources Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+            Resources
+          </Typography>
+          <Grid container spacing={2}>
+            {[
+              { label: 'CPU', value: sandbox.resources.cpuLimit },
+              { label: 'Memory', value: sandbox.resources.memoryLimit },
+              { label: 'Disk', value: sandbox.resources.diskLimit },
+            ].map(({ label, value }) => (
+              <Grid item xs={4} key={label}>
+                <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center' }}>
+                  <Typography variant="caption" color="textSecondary" display="block">
+                    {label}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontFamily: 'monospace', fontWeight: 500 }}
+                  >
+                    {value}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
 
-      {/* Network Access */}
-      <div>
-        <h4 className="mb-2 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-          Network Access
-        </h4>
-        <div
-          className="rounded border p-3 space-y-3"
-          style={{
-            backgroundColor: 'var(--bg-primary)',
-            borderColor: 'var(--ui-border)',
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <Network size={14} style={{ color: sandbox.networkAccess.enabled ? 'var(--semantic-success)' : 'var(--semantic-error)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-              {sandbox.networkAccess.enabled ? 'Network access enabled' : 'Network access disabled'}
-            </span>
-          </div>
-
-          {sandbox.networkAccess.enabled && (
-            <>
-              {/* Allowed domains */}
-              <div>
-                <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                  Allowed Domains:
-                </p>
-                {sandbox.networkAccess.allowedDomains.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {sandbox.networkAccess.allowedDomains.map(domain => (
-                      <span
-                        key={domain}
-                        className="rounded bg-opacity-20 px-2 py-1 text-xs font-mono"
-                        style={{
-                          backgroundColor: `${getIsolationColor('standard')}20`,
-                          color: getIsolationColor('standard'),
-                        }}
-                      >
-                        {domain}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    No domains allowed
-                  </p>
-                )}
-              </div>
-
-              {/* Blocked ports */}
-              <div>
-                <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                  Blocked Ports:
-                </p>
-                {sandbox.networkAccess.blockedPorts.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {sandbox.networkAccess.blockedPorts.map(port => (
-                      <span
-                        key={port}
-                        className="rounded bg-opacity-20 px-2 py-1 text-xs font-mono"
-                        style={{
-                          backgroundColor: `var(--semantic-error)20`,
-                          color: 'var(--semantic-error)',
-                        }}
-                      >
-                        {port}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    No ports blocked
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* File System Access */}
-      <div>
-        <h4 className="mb-2 font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-          File System Access
-        </h4>
-        <div className="grid grid-cols-3 gap-3">
-          {/* Read */}
-          <div
-            className="rounded border p-3"
-            style={{
-              backgroundColor: 'var(--bg-primary)',
-              borderColor: 'var(--ui-border)',
-            }}
+        {/* Network Access Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+            Network Access
+          </Typography>
+          <Paper
+            variant="outlined"
+            sx={{ p: 2, backgroundColor: (theme) => theme.palette.background.default }}
           >
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--semantic-info)' }}>
-              Read Paths
-            </p>
-            <div className="space-y-1">
-              {sandbox.fileSystemAccess.readPaths.map(path => (
-                <p key={path} className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-                  {path}
-                </p>
-              ))}
-            </div>
-          </div>
+            {/* Status */}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+              <NetworkIcon
+                sx={{
+                  fontSize: 16,
+                  color: sandbox.networkAccess.enabled ? 'success.main' : 'error.main',
+                }}
+              />
+              <Typography variant="body2">
+                {sandbox.networkAccess.enabled
+                  ? 'Network access enabled'
+                  : 'Network access disabled'}
+              </Typography>
+            </Stack>
 
-          {/* Write */}
-          <div
-            className="rounded border p-3"
-            style={{
-              backgroundColor: 'var(--bg-primary)',
-              borderColor: 'var(--ui-border)',
-            }}
-          >
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--semantic-success)' }}>
-              Write Paths
-            </p>
-            <div className="space-y-1">
-              {sandbox.fileSystemAccess.writePaths.map(path => (
-                <p key={path} className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-                  {path}
-                </p>
-              ))}
-            </div>
-          </div>
+            {/* Allowed domains and blocked ports */}
+            {sandbox.networkAccess.enabled && (
+              <Stack spacing={2}>
+                {/* Allowed Domains */}
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                    Allowed Domains:
+                  </Typography>
+                  {sandbox.networkAccess.allowedDomains.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {sandbox.networkAccess.allowedDomains.map(domain => (
+                        <Chip
+                          key={domain}
+                          label={domain}
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                      No domains allowed
+                    </Typography>
+                  )}
+                </Box>
 
-          {/* Restricted */}
-          <div
-            className="rounded border p-3"
-            style={{
-              backgroundColor: 'var(--bg-primary)',
-              borderColor: 'var(--ui-border)',
-            }}
-          >
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--semantic-error)' }}>
-              Blocked Paths
-            </p>
-            <div className="space-y-1">
-              {sandbox.fileSystemAccess.restrictedPaths.map(path => (
-                <p key={path} className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-                  {path}
-                </p>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                {/* Blocked Ports */}
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                    Blocked Ports:
+                  </Typography>
+                  {sandbox.networkAccess.blockedPorts.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {sandbox.networkAccess.blockedPorts.map(port => (
+                        <Chip
+                          key={port}
+                          label={port}
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                      No ports blocked
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
+            )}
+          </Paper>
+        </Box>
+
+        {/* File System Access Section */}
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+            File System Access
+          </Typography>
+          <Grid container spacing={2}>
+            {[
+              {
+                title: 'Read Paths',
+                paths: sandbox.fileSystemAccess.readPaths,
+                color: 'info',
+              },
+              {
+                title: 'Write Paths',
+                paths: sandbox.fileSystemAccess.writePaths,
+                color: 'success',
+              },
+              {
+                title: 'Blocked Paths',
+                paths: sandbox.fileSystemAccess.restrictedPaths,
+                color: 'error',
+              },
+            ].map(({ title, paths, color }) => (
+              <Grid item xs={4} key={title}>
+                <Paper variant="outlined" sx={{ p: 1.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 600, display: 'block', mb: 1, color: `${color}.main` }}
+                  >
+                    {title}
+                  </Typography>
+                  <List dense sx={{ '& .MuiListItem-root': { paddingX: 0 } }}>
+                    {paths.length > 0 ? (
+                      paths.map(path => (
+                        <ListItem key={path} disableGutters>
+                          <ListItemText
+                            primary={path}
+                            primaryTypographyProps={{
+                              variant: 'caption',
+                              sx: { fontFamily: 'monospace', fontSize: '11px' },
+                            }}
+                          />
+                        </ListItem>
+                      ))
+                    ) : (
+                      <Typography variant="caption" color="textSecondary" sx={{ fontStyle: 'italic' }}>
+                        No paths
+                      </Typography>
+                    )}
+                  </List>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </CardContent>
+    </Card>
   );
 }
