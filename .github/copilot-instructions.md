@@ -369,28 +369,98 @@ src/
 └── hooks/                      # EMPTY: Use lib/hooks instead
 ```
 
-### Testing Pattern (Vitest + Cypress)
+### Testing Pattern: Three-Layer Strategy (Vitest + Cypress Components + Cypress E2E)
 
-**Unit Tests (Vitest)**:
-```typescript
-// components/jobs/__tests__/JobStatusBadge.test.tsx
-import { render, screen } from '@testing-library/react';
-import { JobStatusBadge } from '../JobStatusBadge';
+**NEW STANDARD**: All components follow a **three-layer testing pyramid**:
 
-describe('JobStatusBadge', () => {
-  it('renders COMPLETED as green', () => {
-    render(<JobStatusBadge status="COMPLETED" />);
-    expect(screen.getByText('COMPLETED')).toHaveClass('success');
-  });
-
-  it('renders FAILED as red', () => {
-    render(<JobStatusBadge status="FAILED" />);
-    expect(screen.getByText('FAILED')).toHaveClass('error');
-  });
-});
+```
+Layer 3: E2E (Full Page Workflows)     [Cypress E2E]
+           ↑ Integration, navigation, full workflows
+Layer 2: Component (Interactive)       [Cypress Component Tests] ⭐ NEW
+           ↑ User interactions, state changes, accessibility
+Layer 1: Unit (Logic & Edge Cases)     [Vitest + jsdom]
+           ↓ Logic, mocking, error states
 ```
 
-**E2E Tests (Cypress)**:
+#### Layer 1: Unit Tests (Vitest)
+Fast, logic-focused tests using jsdom. Ideal for edge cases and mocking.
+
+```typescript
+// components/fields/TextField/__tests__/TextField.test.tsx
+import { render, screen } from '@testing-library/react';
+import { TextField } from '../TextField';
+
+describe('TextField Unit', () => {
+  it('renders with label', () => {
+    render(<TextField label="Email" />);
+    expect(screen.getByText('Email')).toBeInTheDocument();
+  });
+
+  it('handles edge case: very long text', () => {
+    render(<TextField label="Input" value="a".repeat(1000) onChange={() => {}} />);
+    expect(screen.getByDisplayValue("a".repeat(1000))).toBeInTheDocument();
+  });
+
+  it('validates special characters', () => {
+    render(<TextField label="Special" value="!@#$%^&*()" onChange={() => {}} />);
+    expect(screen.getByDisplayValue("!@#$%^&*()")).toBeInTheDocument();
+  });
+});
+
+// Run: npm run test:unit
+// Speed: ⚡ ~50ms per test
+// Scope: Logic, edge cases, error handling
+```
+
+#### Layer 2: Component Tests (Cypress) ⭐ NEW STANDARD
+Real browser environment. Tests user interactions, state management, accessibility in isolation.
+
+```typescript
+// components/fields/TextField/__tests__/TextField.cy.tsx
+import { mount } from 'cypress/react';
+import { TextField } from '../TextField';
+
+describe('TextField Component', () => {
+  it('updates value on user input', () => {
+    mount(<TextField label="Name" />);
+    cy.get('input').type('John Doe');
+    cy.get('input').should('have.value', 'John Doe');
+  });
+
+  it('handles controlled state', () => {
+    const TestComponent = () => {
+      const [value, setValue] = React.useState('');
+      return (
+        <>
+          <TextField 
+            label="Name"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+          <div data-testid="display">{value}</div>
+        </>
+      );
+    };
+    mount(<TestComponent />);
+    cy.get('input').type('Alice');
+    cy.get('[data-testid="display"]').should('have.text', 'Alice');
+  });
+
+  it('is accessible with keyboard navigation', () => {
+    mount(<TextField label="Search" />);
+    cy.get('input').focus();
+    cy.focused().should('have.attr', 'data-testid', 'text-field-input');
+  });
+});
+
+// Run: npm run test:component
+// Speed: ⚡⚡ ~200ms per test (real browser)
+// Scope: User interactions, state changes, accessibility, plug-and-play validation
+```
+
+#### Layer 3: E2E Tests (Cypress)
+Full page workflows. Tests navigation, integration, user journeys.
+
 ```typescript
 // cypress/e2e/jobs.cy.ts
 describe('Jobs Page', () => {
@@ -398,7 +468,7 @@ describe('Jobs Page', () => {
     cy.visit('http://localhost:3000/dashboard/jobs');
   });
 
-  it('loads jobs table with data', () => {
+  it('loads jobs page with data', () => {
     cy.get('[data-testid="jobs-table"]').should('exist');
     cy.get('button').contains('Create Job').should('exist');
   });
@@ -409,10 +479,212 @@ describe('Jobs Page', () => {
     cy.get('button').contains('Submit').click();
     cy.contains('Job created successfully').should('be.visible');
   });
+
+  it('filters jobs by status', () => {
+    cy.get('[data-testid="filter-status"]').click();
+    cy.contains('RUNNING').click();
+    cy.get('[data-testid="jobs-table"] tbody tr').each((row) => {
+      cy.wrap(row).should('contain', 'RUNNING');
+    });
+  });
+});
+
+// Run: npm run test:e2e
+// Speed: ⚡⚡⚡ ~2-5s per test (full app)
+// Scope: Full page workflows, navigation, integration
+```
+
+#### Directory Structure & Naming
+
+```
+src/components/fields/
+├── TextField/
+│   ├── TextField.tsx                    # Component
+│   ├── TextField.stories.tsx            # Storybook visual docs
+│   └── __tests__/
+│       ├── TextField.test.tsx           # Vitest: unit & edge cases
+│       └── TextField.cy.tsx             # Cypress: component interactions ⭐ NEW
+│
+├── SelectField/
+│   ├── SelectField.tsx
+│   ├── SelectField.stories.tsx
+│   └── __tests__/
+│       ├── SelectField.test.tsx
+│       └── SelectField.cy.tsx           # Component: dropdown, options, state
+│
+└── CheckboxField/
+    ├── CheckboxField.tsx
+    ├── CheckboxField.stories.tsx
+    └── __tests__/
+        ├── CheckboxField.test.tsx
+        └── CheckboxField.cy.tsx         # Component: toggle, controlled, a11y
+```
+
+**Test Naming Convention**:
+- `FileName.test.tsx` = Vitest unit tests (fast, isolated, jsdom)
+- `FileName.cy.tsx` = Cypress component tests (real browser, interactive, plug-and-play)
+
+#### When to Use Each Layer
+
+| Scenario | Layer | Tool | Why |
+|----------|-------|------|-----|
+| Unit logic (math, parsing, edge cases) | 1 | Vitest | Fast, mocking-friendly |
+| Component renders correctly | 1 | Vitest | jsdom sufficient |
+| User types in field | 2 | Cypress | Need real browser input handling |
+| Field state updates on change | 2 | Cypress | Real event propagation |
+| Accessibility (keyboard, screen reader) | 2 | Cypress | Real keyboard events, ARIA |
+| Component works standalone/plug-and-play | 2 | Cypress | Validates component isolation |
+| Full page workflow (navigate → filter → submit) | 3 | Cypress E2E | Multiple components, routing |
+| Cross-feature integration | 3 | Cypress E2E | Full app state |
+
+#### NPM Scripts
+
+Add to `package.json`:
+
+```json
+{
+  "scripts": {
+    "test:unit": "vitest run src/components src/app --coverage",
+    "test:unit:watch": "vitest watch src/components src/app",
+    "test:component": "cypress open --component",
+    "test:component:run": "cypress run --component",
+    "test:component:watch": "cypress run --component --watch",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test": "npm run test:unit && npm run test:component:run && npm run test:e2e"
+  }
+}
+```
+
+#### Example: Complete Field Component Testing
+
+**TextField.cy.tsx** - Comprehensive component test template:
+
+```typescript
+import React from 'react';
+import { mount } from 'cypress/react';
+import { TextField } from '../TextField';
+
+describe('TextField Component', () => {
+  describe('Rendering', () => {
+    it('renders with label', () => {
+      mount(<TextField label="Email" />);
+      cy.get('label').should('have.text', 'Email');
+    });
+
+    it('shows required indicator', () => {
+      mount(<TextField label="Email" required />);
+      cy.get('label .MuiFormLabel-asterisk').should('exist');
+    });
+
+    it('renders helper text', () => {
+      mount(<TextField label="Password" helperText="Min 8 chars" />);
+      cy.get('.MuiFormHelperText-root').should('have.text', 'Min 8 chars');
+    });
+  });
+
+  describe('User Interactions', () => {
+    it('updates value on type', () => {
+      mount(<TextField label="Name" />);
+      cy.get('input').type('John');
+      cy.get('input').should('have.value', 'John');
+    });
+
+    it('calls onChange callback', () => {
+      const onChange = cy.stub();
+      mount(<TextField label="Email" onChange={onChange} />);
+      cy.get('input').type('test@example.com');
+      // onChange called during typing
+    });
+  });
+
+  describe('State Management', () => {
+    it('handles controlled component', () => {
+      const TestComponent = () => {
+        const [value, setValue] = React.useState('');
+        return (
+          <>
+            <TextField value={value} onChange={(e) => setValue(e.target.value)} />
+            <div data-testid="display">{value}</div>
+          </>
+        );
+      };
+      mount(<TestComponent />);
+      cy.get('input').type('test');
+      cy.get('[data-testid="display"]').should('have.text', 'test');
+    });
+  });
+
+  describe('Error States', () => {
+    it('shows error styling', () => {
+      mount(
+        <TextField label="Email" error helperText="Invalid" />
+      );
+      cy.get('input').should('have.class', 'Mui-error');
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('links label to input', () => {
+      mount(<TextField label="Email" />);
+      cy.get('label').invoke('attr', 'for').then((id) => {
+        cy.get(`input#${id}`).should('exist');
+      });
+    });
+
+    it('supports keyboard navigation', () => {
+      mount(<TextField label="Field" />);
+      cy.get('input').focus();
+      cy.focused().should('have.attr', 'data-testid', 'text-field-input');
+    });
+  });
 });
 ```
 
-**Target**: 80%+ coverage for all components
+#### Running Tests
+
+```bash
+# Vitest (unit tests) - Fast
+npm run test:unit                # Run all
+npm run test:unit:watch          # Watch mode
+npm run test:unit src/components # Specific folder
+
+# Cypress Component - Interactive
+npm run test:component           # Open Cypress UI
+npm run test:component:run       # Headless
+npm run test:component:watch     # Watch mode
+
+# Cypress E2E - Full app
+npm run test:e2e:open           # Interactive
+npm run test:e2e                # Headless
+
+# All tests
+npm run test                     # Vitest + Cypress Component + Cypress E2E
+```
+
+#### Target Coverage
+
+| Layer | Target | Current |
+|-------|--------|---------|
+| Vitest (unit) | 80%+ | ~85% (dashboard) |
+| Cypress Component | 80%+ | ~60% (fields) |
+| Cypress E2E | Critical paths | ~70+ workflows |
+| **Total** | **Comprehensive** | **Growing** |
+
+#### Key Benefits
+
+✅ **Plug-and-Play Components**: Cypress component tests validate fields work standalone  
+✅ **Real Browser Testing**: Catch DOM/browser-specific bugs before production  
+✅ **Accessibility First**: Keyboard nav, screen reader support tested in Layer 2  
+✅ **Fast Feedback**: Vitest for quick iteration, Cypress for confidence  
+✅ **Reduced Integration Bugs**: Component tests catch issues before page assembly  
+✅ **Documentation**: Tests serve as usage examples  
+
+---
+
+**Target**: 80%+ coverage at all three layers. Write tests FIRST, watch them fail (RED), then implement code to make them pass (GREEN).
+
+**See also**: `CYPRESS_COMPONENT_TESTING.md` for comprehensive guide and examples.
 
 ---
 
@@ -600,14 +872,27 @@ npm run data-service           # Mock data server on :8001
 
 ## When Adding Features: Quick Checklist
 
+### For Field/Micro Components (TextField, SelectField, etc.)
+- [ ] **Types First**: Define TypeScript interfaces for component props
+- [ ] **Storybook Stories**: Write stories BEFORE component (multiple states: default, loading, error, disabled)
+- [ ] **Unit Tests (RED)**: Write Vitest tests first for logic & edge cases
+- [ ] **Component Tests (RED)**: Write Cypress `.cy.tsx` tests for user interactions & accessibility
+- [ ] **E2E Tests (RED)**: Write Cypress E2E tests for page-level workflows
+- [ ] **Component Implementation**: Build React component using MUI X (minimal code to pass tests)
+- [ ] **Tests PASS**: Verify all three layers (Vitest + Cypress Component + Cypress E2E) passing
+- [ ] **Git Commit**: Use conventional commits (`feat(components): add TextField component`)
+
+### For Feature Modules (Dashboard, Deployments, etc.)
 - [ ] **Types First**: Define TypeScript interfaces (frontend) / Pydantic models (backend)
-- [ ] **Tests First**: Write tests before implementation
+- [ ] **Tests First**: Write tests before implementation (all three layers)
 - [ ] **Backend API**: Create endpoint + CodeUChain chain + Links
 - [ ] **Frontend Chain**: Create CodeUChain chain for state management
 - [ ] **API Client**: Create typed client for backend endpoint
-- [ ] **Component**: Build React component using MUI X
-- [ ] **Tests Pass**: Vitest (unit) + Cypress (E2E) + backend pytest
-- [ ] **Git Commit**: Use conventional commits (`feat:`, `fix:`, `test:`, `docs:`)
+- [ ] **Page Component**: Build page using field components + MUI X
+- [ ] **Cypress Component Tests**: Test page interactions in isolation (before E2E)
+- [ ] **Cypress E2E Tests**: Test full workflows with navigation & integration
+- [ ] **Tests Pass**: Vitest (unit) + Cypress Component + Cypress E2E + backend pytest
+- [ ] **Git Commit**: Use conventional commits (`feat(dashboard): add jobs page`)
 
 ---
 
