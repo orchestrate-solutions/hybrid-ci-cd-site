@@ -1,5 +1,25 @@
 import React, { useState } from 'react';
-import { AlertTriangle, AlertCircle, ShieldAlert } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Chip,
+  Box,
+  Stack,
+  Button,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+} from '@mui/material';
+import {
+  AlertCircle as AlertCircleIcon,
+  Warning as WarningIcon,
+  ErrorOutline as ErrorOutlineIcon,
+  CheckCircle as CheckCircleIcon,
+} from '@mui/icons-material';
+import { CheckboxField } from '../../fields';
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
@@ -16,33 +36,28 @@ interface PluginPermissionsProps {
   onReject: () => void;
 }
 
-function getRiskColor(level: RiskLevel): string {
+function getRiskColor(level: RiskLevel): 'success' | 'warning' | 'error' {
   switch (level) {
     case 'low':
-      return 'var(--semantic-success)';
+      return 'success';
     case 'medium':
-      return 'var(--semantic-warning)';
+      return 'warning';
     case 'high':
-      return 'var(--semantic-error)';
     case 'critical':
-      return '#D32F2F';
+      return 'error';
   }
-}
-
-function getRiskLabel(level: RiskLevel): string {
-  return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
 function getRiskIcon(level: RiskLevel) {
   switch (level) {
     case 'low':
-      return null;
+      return <CheckCircleIcon />;
     case 'medium':
-      return <AlertCircle size={14} />;
+      return <AlertCircleIcon />;
     case 'high':
-      return <AlertTriangle size={14} />;
+      return <WarningIcon />;
     case 'critical':
-      return <ShieldAlert size={14} />;
+      return <ErrorOutlineIcon />;
   }
 }
 
@@ -71,114 +86,84 @@ export function PluginPermissions({
 
   if (permissions.length === 0) {
     return (
-      <div
-        className="rounded-lg border p-6"
-        style={{
-          backgroundColor: 'var(--bg-secondary)',
-          borderColor: 'var(--ui-border)',
-        }}
-      >
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Permissions
-        </h2>
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          No permissions required
-        </p>
-      </div>
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Permissions
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            No permissions required
+          </Typography>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div
-      className="rounded-lg border p-6"
-      style={{
-        backgroundColor: 'var(--bg-secondary)',
-        borderColor: 'var(--ui-border)',
-      }}
-    >
-      <h2 className="mb-4 text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-        Required Permissions
-      </h2>
-      <p className="mb-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Review and approve the permissions this plugin requires:
-      </p>
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Required Permissions
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+          Review and approve the permissions this plugin requires:
+        </Typography>
 
-      {/* Permission list */}
-      <div className="mb-6 space-y-3">
-        {permissions.map(permission => (
-          <div
-            key={permission.id}
-            className="flex items-start gap-3 rounded border p-3 transition-colors hover:bg-opacity-80"
-            style={{
-              backgroundColor: 'var(--bg-primary)',
-              borderColor: 'var(--ui-border)',
-            }}
-          >
-            {/* Checkbox */}
-            <input
-              type="checkbox"
-              id={permission.id}
-              checked={checkedPermissions.has(permission.id)}
-              onChange={() => handleToggle(permission.id)}
-              className="mt-1 cursor-pointer"
-              style={{ accentColor: 'var(--brand-primary)' }}
-              aria-label={`Approve ${permission.name}`}
-            />
-
-            {/* Permission details */}
-            <div className="flex-1 min-w-0">
-              <label
-                htmlFor={permission.id}
-                className="block cursor-pointer font-medium"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                {permission.name}
-              </label>
-              <p
-                className="mt-1 text-sm"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {permission.description}
-              </p>
-            </div>
-
-            {/* Risk badge */}
-            <div
-              className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap"
-              data-testid={`risk-badge-${permission.riskLevel}`}
-              style={{
-                backgroundColor: `${getRiskColor(permission.riskLevel)}20`,
-                color: getRiskColor(permission.riskLevel),
+        {/* Permissions List */}
+        <List sx={{ mb: 3 }}>
+          {permissions.map(permission => (
+            <ListItem
+              key={permission.id}
+              secondaryAction={
+                <Chip
+                  icon={getRiskIcon(permission.riskLevel)}
+                  label={permission.riskLevel.charAt(0).toUpperCase() + permission.riskLevel.slice(1)}
+                  color={getRiskColor(permission.riskLevel)}
+                  size="small"
+                  variant="outlined"
+                />
+              }
+              sx={{
+                mb: 1.5,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
               }}
             >
-              {getRiskIcon(permission.riskLevel)}
-              <span>{getRiskLabel(permission.riskLevel)}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+              <ListItemIcon>
+                <CheckboxField
+                  label=""
+                  checked={checkedPermissions.has(permission.id)}
+                  onChange={() => handleToggle(permission.id)}
+                />
+              </ListItemIcon>
+              <ListItemText
+                primary={permission.name}
+                secondary={permission.description}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </CardContent>
 
-      {/* Action buttons */}
-      <div className="flex gap-3">
-        <button
+      {/* Action Buttons */}
+      <CardActions sx={{ gap: 1 }}>
+        <Button
+          variant="contained"
+          color="success"
           onClick={handleApprove}
-          className="flex-1 rounded px-4 py-2 font-medium text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--semantic-success)' }}
+          fullWidth
         >
           Approve Permissions
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outlined"
           onClick={onReject}
-          className="flex-1 rounded px-4 py-2 font-medium transition-colors"
-          style={{
-            backgroundColor: 'var(--bg-tertiary)',
-            color: 'var(--text-primary)',
-            border: `1px solid var(--ui-border)`,
-          }}
+          fullWidth
         >
           Reject
-        </button>
-      </div>
-    </div>
+        </Button>
+      </CardActions>
+    </Card>
   );
 }

@@ -1,12 +1,23 @@
 /**
- * ConfigCard Component
+ * ConfigCard Component - Professional display card using MUI X
  * 
- * Displays a configuration card with status indicator, title, description,
- * and optional edit/delete actions. Themeable with CSS variables.
+ * Displays a configuration card with status badge, title, description,
+ * and optional edit/delete actions. Uses MUI Card + Chip for consistent styling.
  */
 
 import React from 'react';
-import { Edit2, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Chip,
+  IconButton,
+  Box,
+  Stack,
+} from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { CheckCircle as CheckCircleIcon, Warning as WarningIcon } from '@mui/icons-material';
 
 export type ConfigStatus = 'active' | 'inactive' | 'warning' | 'error';
 
@@ -26,20 +37,20 @@ interface ConfigCardProps {
 }
 
 /**
- * Get status icon and color based on status
+ * Get status config with MUI color scheme
  */
 function getStatusConfig(status: ConfigStatus) {
   const configs = {
-    active: { icon: CheckCircle2, color: 'var(--semantic-success)', label: 'Active' },
-    inactive: { icon: AlertCircle, color: 'var(--ui-border)', label: 'Inactive' },
-    warning: { icon: AlertCircle, color: 'var(--semantic-warning)', label: 'Warning' },
-    error: { icon: AlertCircle, color: 'var(--semantic-error)', label: 'Error' },
+    active: { icon: CheckCircleIcon, color: 'success' as const, label: 'Active' },
+    inactive: { icon: WarningIcon, color: 'default' as const, label: 'Inactive' },
+    warning: { icon: WarningIcon, color: 'warning' as const, label: 'Warning' },
+    error: { icon: WarningIcon, color: 'error' as const, label: 'Error' },
   };
   return configs[status];
 }
 
 /**
- * ConfigCard component
+ * ConfigCard component using MUI Card
  */
 export function ConfigCard({
   title,
@@ -53,118 +64,123 @@ export function ConfigCard({
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div
+    <Card
       data-testid="config-card"
       data-status={status}
       data-compact={compact}
-      className={`
-        rounded-lg border transition-all duration-200
-        ${compact ? 'p-3' : 'p-4'}
-        ${
-          status === 'active'
-            ? 'border-[var(--semantic-success)] bg-[var(--bg-primary)]'
-            : status === 'error'
-              ? 'border-[var(--semantic-error)] bg-[var(--bg-tertiary)]'
-              : status === 'warning'
-                ? 'border-[var(--semantic-warning)] bg-[var(--bg-secondary)]'
-                : 'border-[var(--ui-border)] bg-[var(--bg-secondary)]'
-        }
-        hover:shadow-md hover:border-[var(--brand-primary)]
-      `}
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          boxShadow: 3,
+          transform: 'translateY(-2px)',
+        },
+        border: `1px solid`,
+        borderColor: (theme) =>
+          status === 'error'
+            ? theme.palette.error.main
+            : status === 'warning'
+              ? theme.palette.warning.main
+              : status === 'active'
+                ? theme.palette.success.main
+                : theme.palette.divider,
+      }}
     >
-      {/* Header with status indicator and title */}
-      <div className="flex items-start gap-3 mb-2">
-        {/* Status indicator */}
-        <div
-          data-testid="status-indicator"
-          aria-label={`Status: ${statusConfig.label}`}
-          className="flex-shrink-0 mt-1"
-        >
-          <StatusIcon
-            size={compact ? 16 : 20}
-            color={statusConfig.color}
-            className="transition-colors"
-          />
-        </div>
+      {/* Card Content */}
+      <CardContent
+        sx={{
+          flex: 1,
+          pb: compact ? 1 : 2,
+        }}
+      >
+        {/* Header with status and title */}
+        <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mb: 1.5 }}>
+          {/* Status icon */}
+          <Box sx={{ pt: 0.25, flex Shrink: 0 }}>
+            <StatusIcon
+              data-testid="status-indicator"
+              sx={{
+                fontSize: compact ? 20 : 24,
+                color: `${statusConfig.color}.main`,
+              }}
+            />
+          </Box>
 
-        {/* Title and actions */}
-        <div className="flex-1 min-w-0">
-          <h3
-            className={`
-              font-semibold text-[var(--text-primary)] truncate
-              ${compact ? 'text-sm' : 'text-base'}
-            `}
+          {/* Title */}
+          <Typography
+            variant={compact ? 'body2' : 'h6'}
+            component="div"
+            sx={{
+              fontWeight: 600,
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
           >
             {title}
-          </h3>
-        </div>
+          </Typography>
 
-        {/* Action buttons */}
-        {(onEdit || onDelete) && (
-          <div className="flex gap-1 flex-shrink-0">
-            {onEdit && (
-              <button
-                data-testid="btn-edit"
-                onClick={onEdit}
-                className={`
-                  p-1.5 rounded hover:bg-[var(--bg-secondary)]
-                  text-[var(--text-secondary)] hover:text-[var(--brand-primary)]
-                  transition-colors
-                  ${compact ? 'hidden sm:block' : ''}
-                `}
-                aria-label="Edit configuration"
-              >
-                <Edit2 size={16} />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                data-testid="btn-delete"
-                onClick={onDelete}
-                className={`
-                  p-1.5 rounded hover:bg-[var(--bg-secondary)]
-                  text-[var(--text-secondary)] hover:text-[var(--semantic-error)]
-                  transition-colors
-                  ${compact ? 'hidden sm:block' : ''}
-                `}
-                aria-label="Delete configuration"
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+          {/* Status badge */}
+          <Chip
+            icon={<StatusIcon />}
+            label={statusConfig.label}
+            color={statusConfig.color}
+            size="small"
+            variant="outlined"
+            sx={{ flex Shrink: 0 }}
+          />
+        </Stack>
 
-      {/* Description */}
-      <p
-        className={`
-          text-[var(--text-secondary)] line-clamp-2
-          ${compact ? 'text-xs' : 'text-sm'}
-        `}
-      >
-        {description}
-      </p>
+        {/* Description */}
+        <Typography
+          variant="body2"
+          color="textSecondary"
+          sx={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {description}
+        </Typography>
+      </CardContent>
 
-      {/* Status label for clarity */}
-      {status !== 'active' && !compact && (
-        <div className="mt-2 pt-2 border-t border-[var(--ui-divider)]">
-          <span
-            className={`
-              inline-block text-xs font-medium px-2 py-1 rounded
-              ${
-                status === 'error'
-                  ? 'bg-[var(--semantic-error)]/10 text-[var(--semantic-error)]'
-                  : status === 'warning'
-                    ? 'bg-[var(--semantic-warning)]/10 text-[var(--semantic-warning)]'
-                    : 'bg-[var(--ui-border)]/20 text-[var(--text-secondary)]'
-              }
-            `}
-          >
-            {statusConfig.label}
-          </span>
-        </div>
+      {/* Action buttons */}
+      {(onEdit || onDelete) && (
+        <CardActions
+          sx={{
+            pt: 0,
+            pb: compact ? 0.5 : 1,
+            gap: 0.5,
+          }}
+        >
+          {onEdit && (
+            <IconButton
+              data-testid="btn-edit"
+              onClick={onEdit}
+              size="small"
+              aria-label="Edit configuration"
+              color="primary"
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          )}
+          {onDelete && (
+            <IconButton
+              data-testid="btn-delete"
+              onClick={onDelete}
+              size="small"
+              aria-label="Delete configuration"
+              color="error"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          )}
+        </CardActions>
       )}
-    </div>
+    </Card>
   );
 }

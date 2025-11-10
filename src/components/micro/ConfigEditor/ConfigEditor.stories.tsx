@@ -47,7 +47,7 @@ export const WithValidation: Story = {
   },
 };
 
-export const LongConfigWithMany Fields: Story = {
+export const LongConfigWithManyFields: Story = {
   args: {
     toolName: 'Kubernetes',
     initialConfig: {
