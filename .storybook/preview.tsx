@@ -1,4 +1,7 @@
 import type { Preview } from '@storybook/react';
+import React from 'react';
+import { ThemeProvider } from '@/lib/themes/ThemeProvider';
+import { MuiThemeProvider } from '@/components/MuiThemeProvider';
 import '../src/app/globals.css';
 
 const preview: Preview = {
@@ -7,9 +10,11 @@ const preview: Preview = {
   },
   decorators: [
     (Story) => (
-      <div className="bg-bg-primary text-text-primary min-h-screen">
-        <Story />
-      </div>
+      <ThemeProvider initialTheme="dark">
+        <MuiThemeProvider>
+          <Story />
+        </MuiThemeProvider>
+      </ThemeProvider>
     ),
   ],
 };
