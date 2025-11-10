@@ -6,13 +6,15 @@ export interface HeaderProps {
   title: string;
   userMenuItems?: Array<{ label: string; onClick: () => void }>;
   onThemeToggle?: () => void;
+  onMenuToggle?: () => void;
 }
 
 export function Header({ 
   logo, 
   title, 
   userMenuItems,
-  onThemeToggle 
+  onThemeToggle,
+  onMenuToggle
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -34,7 +36,19 @@ export function Header({
       </div>
 
       {/* Right side controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        {/* Mobile menu toggle (hamburger) */}
+        {onMenuToggle && (
+          <button
+            onClick={onMenuToggle}
+            className="p-2 md:hidden rounded hover:bg-surface-secondary transition-colors"
+            aria-label="Toggle menu"
+            title="Toggle menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
         {/* Theme toggle */}
         {onThemeToggle && (
           <button

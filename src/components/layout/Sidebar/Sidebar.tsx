@@ -29,7 +29,7 @@ export function Sidebar({ items, activeId, onNavigate }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 flex-shrink-0 overflow-y-auto flex flex-col bg-surface-primary text-text-primary border-r border-divider">
+    <nav className="w-full flex-shrink-0 overflow-y-auto flex flex-col bg-surface-primary text-text-primary">
       <nav className="flex-1 px-0 py-4 space-y-1">
         {items.map((item) => (
           <div key={item.id}>
@@ -76,6 +76,6 @@ export function Sidebar({ items, activeId, onNavigate }: SidebarProps) {
           </div>
         ))}
       </nav>
-    </aside>
+    </nav>
   );
 }

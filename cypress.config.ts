@@ -13,14 +13,7 @@ export default defineConfig({
   component: {
     devServer: {
       framework: 'next',
-      bundler: 'vite',
-      viteConfig: {
-        resolve: {
-          alias: {
-            '@': new URL('./src', import.meta.url).pathname,
-          },
-        },
-      },
+      bundler: 'webpack',
     },
     specPattern: ['src/components/fields/**/*.cy.{js,jsx,ts,tsx}'],
     supportFile: 'cypress/support/component.tsx',
