@@ -1,0 +1,37 @@
+version: 1.0.0
+type: tool
+
+metadata:
+  id: my-tool  # Change to tool ID (e.g., 'gitlab', 'gitea', 'codepipeline')
+  name: My Tool Name  # Display name
+  description: Receive events from My Tool
+  category: version-control  # See schema for allowed categories
+  
+integration:
+  webhooks:
+    enabled: true
+    endpoint: /api/webhooks/my-tool
+    verification:
+      method: hmac-sha256  # hmac-sha256, token, signature, or none
+      header: X-Signature  # Header containing signature/token
+      secret_env_var: MY_TOOL_WEBHOOK_SECRET  # Environment variable with secret
+    
+    events:
+      push:  # Event identifier (internal name)
+        http_event_header: X-Tool-Event  # Header to check for event type
+        header_value: push  # Value indicating this event type
+        data_mapping:
+          event_type: "push"  # Field names from config schema
+          repository: $.repository.name  # JSONPath expressions
+          branch: $.ref
+          commit_sha: $.commit.sha
+          author: $.pusher.username
+
+features:
+  auto_job_creation: true  # Auto-create jobs from webhooks
+
+contribution:
+  author: your-name
+  license: MIT
+  allow_forks: true
+
