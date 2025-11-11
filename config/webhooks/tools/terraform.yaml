@@ -1,0 +1,42 @@
+version: 1.0.0
+type: tool
+
+metadata:
+  id: terraform
+  name: Terraform Cloud
+  description: Receive plan and apply events from Terraform Cloud
+  category: iac
+  
+integration:
+  webhooks:
+    enabled: true
+    endpoint: /api/webhooks/terraform
+    verification:
+      method: signature
+      header: X-Terraform-Signature
+      secret_env_var: TERRAFORM_WEBHOOK_SECRET
+    
+    events:
+      plan:
+        http_event_header: X-Terraform-Event
+        header_value: run:created
+        data_mapping:
+          event_type: "plan"
+          workspace: $.data.attributes.name
+          workspace_id: $.data.id
+          organization: $.data.relationships.organization.data.id
+          resources_added: $.data.attributes.resources_added
+          resources_changed: $.data.attributes.resources_changed
+          resources_destroyed: $.data.attributes.resources_destroyed
+          status: $.data.attributes.status
+          timestamp: $.data.attributes.created_at
+          source_url: $.data.links.self
+
+features:
+  auto_job_creation: true
+  auto_deployment: false
+
+contribution:
+  author: orchestrate-solutions
+  license: MIT
+  allow_forks: true

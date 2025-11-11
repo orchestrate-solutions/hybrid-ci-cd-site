@@ -1,0 +1,40 @@
+version: 1.0.0
+type: tool
+
+metadata:
+  id: jenkins
+  name: Jenkins CI/CD
+  description: Receive build completion events from Jenkins
+  category: ci-cd
+  
+integration:
+  webhooks:
+    enabled: true
+    endpoint: /api/webhooks/jenkins
+    verification:
+      method: token
+      header: X-Jenkins-Token
+      secret_env_var: JENKINS_WEBHOOK_TOKEN
+    
+    events:
+      build_completed:
+        http_event_header: X-Jenkins-Event
+        header_value: build_completed
+        data_mapping:
+          event_type: "build_completed"
+          job_name: $.build.name
+          build_number: $.build.number
+          status: $.build.status
+          duration_seconds: $.build.duration
+          logs_url: $.build.logs_url
+          timestamp: $.build.timestamp
+          source_url: $.build.url
+
+features:
+  auto_job_creation: false
+  auto_deployment: true
+
+contribution:
+  author: orchestrate-solutions
+  license: MIT
+  allow_forks: true
