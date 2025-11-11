@@ -598,3 +598,286 @@ class TestTerraformWebhooks:
         assert fields["resources_changed"] == 12
         assert fields["resources_destroyed"] == 3
         assert fields["organization"] == "org-enterprise"
+
+
+# ============================================================================
+# PHASE 3: Prometheus Webhook Integration Tests
+# ============================================================================
+
+@pytest.mark.asyncio
+class TestPrometheusWebhooks:
+    """Test Prometheus AlertManager webhook processing (no verification)"""
+    
+    @pytest.fixture
+    def prometheus_alert_payload(self):
+        """Real-world Prometheus AlertManager alert payload"""
+        return {
+            "status": "firing",
+            "alerts": [
+                {
+                    "status": "firing",
+                    "labels": {
+                        "alertname": "HighCPUUsage",
+                        "severity": "critical",
+                        "instance": "prod-api-1.internal",
+                        "job": "prometheus"
+                    },
+                    "annotations": {
+                        "summary": "High CPU usage detected",
+                        "description": "CPU usage is above 90% on prod-api-1"
+                    },
+                    "startsAt": "2025-11-10T12:00:00Z",
+                    "endsAt": "0001-01-01T00:00:00Z"
+                },
+                {
+                    "status": "firing",
+                    "labels": {
+                        "alertname": "DiskSpaceWarning",
+                        "severity": "warning",
+                        "instance": "prod-db-1.internal",
+                        "job": "node_exporter"
+                    },
+                    "annotations": {
+                        "summary": "Low disk space",
+                        "description": "Disk space is below 20% on prod-db-1"
+                    },
+                    "startsAt": "2025-11-10T11:30:00Z",
+                    "endsAt": "0001-01-01T00:00:00Z"
+                }
+            ],
+            "groupLabels": {
+                "alertname": "HighCPUUsage"
+            },
+            "commonLabels": {
+                "environment": "production"
+            },
+            "commonAnnotations": {
+                "runbook": "https://wiki.internal/runbooks/cpu"
+            },
+            "externalURL": "https://alertmanager.internal",
+            "version": "4",
+            "groupKey": "{}/{}:{}",
+            "truncatedAlerts": 0
+        }
+    
+    @pytest.fixture
+    def prometheus_alert_headers(self):
+        """Prometheus webhook headers (no signature verification)"""
+        return {
+            "X-Alert-Manager-Event": "alert",
+            "Content-Type": "application/json",
+            "User-Agent": "Alertmanager/0.24.0"
+        }
+    
+    async def test_load_prometheus_config(self, loader):
+        """✅ GREEN: Load Prometheus config from YAML"""
+        config = await loader.load_config("prometheus")
+        
+        assert config["metadata"]["id"] == "prometheus"
+        assert config["metadata"]["name"] == "Prometheus AlertManager"
+        assert config["integration"]["webhooks"]["enabled"] is True
+        assert config["integration"]["webhooks"]["verification"]["method"] == "none"
+    
+    async def test_prometheus_no_verification_method(self, loader):
+        """✅ GREEN: Prometheus uses 'none' verification (IP whitelist)"""
+        config = await loader.load_config("prometheus")
+        
+        assert config["integration"]["webhooks"]["verification"]["method"] == "none"
+    
+    async def test_prometheus_alert_event_config(self, loader):
+        """✅ GREEN: Prometheus config has alert event"""
+        config = await loader.load_config("prometheus")
+        
+        assert "alert" in config["integration"]["webhooks"]["events"]
+        event = config["integration"]["webhooks"]["events"]["alert"]
+        assert event["http_event_header"] == "X-Alert-Manager-Event"
+        assert event["header_value"] == "alert"
+    
+    async def test_extract_prometheus_event_type(self, loader, prometheus_alert_payload):
+        """✅ GREEN: Extract alert event type from headers"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        headers = {"X-Alert-Manager-Event": "alert"}
+        event_type = await adapter._extract_event_type(prometheus_alert_payload, headers)
+        
+        assert event_type == "alert"
+    
+    async def test_extract_prometheus_alert_fields(self, loader, prometheus_alert_payload):
+        """✅ GREEN: Extract alert fields via JSONPath"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        fields = await adapter._extract_fields(prometheus_alert_payload, "alert")
+        
+        assert fields["status"] == "firing"
+        assert fields["first_alert_name"] == "HighCPUUsage"
+        assert fields["first_alert_severity"] == "critical"
+        assert fields["first_alert_status"] == "firing"
+        assert fields["common_labels"]["environment"] == "production"
+    
+    async def test_prometheus_no_verification(self, loader, prometheus_alert_payload):
+        """✅ GREEN: Prometheus verification always succeeds (no verification)"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        payload_json = json.dumps(prometheus_alert_payload)
+        payload_bytes = payload_json.encode()
+        
+        headers = {"X-Alert-Manager-Event": "alert"}
+        result = await adapter._verify_signature(payload_bytes, headers)
+        
+        # No verification required
+        assert result is True
+    
+    async def test_prometheus_full_webhook_parse(self, loader, prometheus_alert_payload, prometheus_alert_headers):
+        """✅ GREEN: Full Prometheus webhook parse (no verification needed)"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        payload_json = json.dumps(prometheus_alert_payload)
+        payload_bytes = payload_json.encode()
+        
+        webhook_event = await adapter.parse(payload_bytes, prometheus_alert_headers)
+        
+        # Verify structure
+        assert webhook_event["tool"] == "prometheus"
+        assert webhook_event["event_type"] == "alert"
+        assert isinstance(webhook_event["timestamp"], datetime)
+        assert webhook_event["event_id"]  # UUID generated
+        
+        # Verify metadata extracted
+        assert webhook_event["metadata"]["status"] == "firing"
+        assert webhook_event["metadata"]["first_alert_name"] == "HighCPUUsage"
+        assert webhook_event["metadata"]["first_alert_severity"] == "critical"
+    
+    async def test_prometheus_multiple_alerts_in_payload(self, loader):
+        """✅ GREEN: Parse Prometheus payload with multiple alerts"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        multi_alert_payload = {
+            "status": "firing",
+            "alerts": [
+                {
+                    "status": "firing",
+                    "labels": {
+                        "alertname": "Alert1",
+                        "severity": "critical"
+                    }
+                },
+                {
+                    "status": "firing",
+                    "labels": {
+                        "alertname": "Alert2",
+                        "severity": "warning"
+                    }
+                },
+                {
+                    "status": "resolved",
+                    "labels": {
+                        "alertname": "Alert3",
+                        "severity": "info"
+                    }
+                }
+            ],
+            "groupLabels": {},
+            "commonLabels": {},
+            "commonAnnotations": {}
+        }
+        
+        fields = await adapter._extract_fields(multi_alert_payload, "alert")
+        
+        # Should extract first alert
+        assert fields["first_alert_name"] == "Alert1"
+        assert fields["first_alert_severity"] == "critical"
+        assert fields["status"] == "firing"
+    
+    async def test_prometheus_resolved_alerts(self, loader):
+        """✅ GREEN: Handle resolved alerts (status=resolved)"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        resolved_payload = {
+            "status": "resolved",
+            "alerts": [
+                {
+                    "status": "resolved",
+                    "labels": {
+                        "alertname": "HighCPUUsage",
+                        "severity": "critical"
+                    },
+                    "startsAt": "2025-11-10T12:00:00Z",
+                    "endsAt": "2025-11-10T12:15:00Z"
+                }
+            ],
+            "groupLabels": {},
+            "commonLabels": {},
+            "commonAnnotations": {}
+        }
+        
+        fields = await adapter._extract_fields(resolved_payload, "alert")
+        
+        assert fields["status"] == "resolved"
+        assert fields["first_alert_name"] == "HighCPUUsage"
+    
+    async def test_prometheus_parse_with_empty_alerts(self, loader):
+        """✅ GREEN: Handle empty alerts array"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        empty_alerts_payload = {
+            "status": "resolved",
+            "alerts": [],
+            "groupLabels": {},
+            "commonLabels": {},
+            "commonAnnotations": {}
+        }
+        
+        fields = await adapter._extract_fields(empty_alerts_payload, "alert")
+        
+        # Should handle gracefully
+        assert fields["status"] == "resolved"
+        assert fields["first_alert_name"] is None
+        assert fields["first_alert_severity"] is None
+    
+    async def test_prometheus_alert_with_custom_labels(self, loader):
+        """✅ GREEN: Extract custom labels and annotations"""
+        config = await loader.load_config("prometheus")
+        adapter = UniversalWebhookAdapter(config)
+        
+        custom_payload = {
+            "status": "firing",
+            "alerts": [
+                {
+                    "status": "firing",
+                    "labels": {
+                        "alertname": "CustomAlert",
+                        "severity": "critical",
+                        "service": "api",
+                        "environment": "prod"
+                    },
+                    "annotations": {
+                        "summary": "Test alert",
+                        "description": "This is a test"
+                    }
+                }
+            ],
+            "groupLabels": {
+                "service": "api"
+            },
+            "commonLabels": {
+                "environment": "prod",
+                "cluster": "us-east-1"
+            },
+            "commonAnnotations": {
+                "runbook": "https://wiki.internal/runbooks/custom"
+            }
+        }
+        
+        fields = await adapter._extract_fields(custom_payload, "alert")
+        
+        assert fields["first_alert_name"] == "CustomAlert"
+        assert fields["grouped_by"]["service"] == "api"
+        assert fields["common_labels"]["cluster"] == "us-east-1"
+        assert fields["common_annotations"]["runbook"] == "https://wiki.internal/runbooks/custom"

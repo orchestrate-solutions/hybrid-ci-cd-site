@@ -1,0 +1,38 @@
+version: 1.0.0
+type: tool
+
+metadata:
+  id: prometheus
+  name: Prometheus AlertManager
+  description: Receive alerts from Prometheus AlertManager
+  category: monitoring
+
+integration:
+  webhooks:
+    enabled: true
+    endpoint: /api/webhooks/prometheus
+    verification:
+      method: none
+    
+    events:
+      alert:
+        http_event_header: X-Alert-Manager-Event
+        header_value: alert
+        data_mapping:
+          event_type: "alert"
+          status: $.status
+          first_alert_name: $.alerts[0].labels.alertname
+          first_alert_severity: $.alerts[0].labels.severity
+          first_alert_status: $.alerts[0].status
+          grouped_by: $.groupLabels
+          common_labels: $.commonLabels
+          common_annotations: $.commonAnnotations
+
+features:
+  auto_incident_creation: true
+
+contribution:
+  author: orchestrate-solutions
+  license: MIT
+  allow_forks: true
+
