@@ -1,0 +1,51 @@
+version: 1.0.0
+type: tool
+
+metadata:
+  id: github
+  name: GitHub / GitHub Actions
+  description: Receive push, pull request, and workflow events from GitHub
+  category: version-control
+
+integration:
+  webhooks:
+    enabled: true
+    endpoint: /api/webhooks/github
+    verification:
+      method: hmac-sha256
+      header: X-Hub-Signature-256
+      secret_env_var: GITHUB_WEBHOOK_SECRET
+    
+    events:
+      push:
+        http_event_header: X-GitHub-Event
+        header_value: push
+        data_mapping:
+          event_type: push
+          repository: $.repository.full_name
+          branch: $.ref
+          commit_sha: $.head_commit.id
+          commit_message: $.head_commit.message
+          author: $.pusher.name
+          timestamp: $.head_commit.timestamp
+          source_url: $.head_commit.url
+      
+      pull_request:
+        http_event_header: X-GitHub-Event
+        header_value: pull_request
+        data_mapping:
+          event_type: pull_request
+          repository: $.pull_request.head.repo.full_name
+          branch: $.pull_request.head.ref
+          action: $.action
+          pr_number: $.pull_request.number
+          author: $.pull_request.user.login
+          source_url: $.pull_request.html_url
+
+features:
+  auto_job_creation: true
+
+contribution:
+  author: orchestrate-solutions
+  license: MIT
+  allow_forks: true

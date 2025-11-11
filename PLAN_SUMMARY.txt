@@ -1,0 +1,118 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              WEBHOOK IMPLEMENTATION PLAN - READY FOR EXECUTION              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 PLAN DOCUMENTATION COMPLETE
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Main Plan: WEBHOOK_IMPLEMENTATION_PLAN.md                                   │
+│ Todo List: 28 actionable items tracked in #manage_todo_list                │
+│ Branch: feat/webhook-adapter                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+✅ ARCHITECTURE OVERVIEW
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Universal Webhook Adapter Pattern:                                          │
+│   • Single UniversalWebhookAdapter class handles ALL tools                 │
+│   • Config-driven behavior (YAML/JSON in config/webhooks/tools/)           │
+│   • Verification methods: HMAC-SHA256, token, signature, none              │
+│   • Field extraction: JSON path expressions in configs                     │
+│   • Normalization: All events → WebhookEvent TypedDict                     │
+│   • No Python code changes needed to add new tools!                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📊 PHASE BREAKDOWN (12 hours total)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Phase 0: Foundation (3 hrs)                                                 │
+│   □ WebhookEvent models & TypedDicts                                       │
+│   □ JSON Schema for config validation                                      │
+│   □ UniversalWebhookAdapter class                                          │
+│   □ WebhookConfigLoader (load/validate YAML/JSON)                         │
+│   □ FastAPI router (/api/webhooks/<tool_id>)                              │
+│   └─ Goal: Single reusable adapter + validation infrastructure            │
+│                                                                             │
+│ Phase 1: GitHub (3 hrs)                                                     │
+│   □ config/webhooks/tools/github.yaml (HMAC-SHA256, push/PR events)       │
+│   □ RED tests: UniversalWebhookAdapter with GitHub config                 │
+│   □ GitHub integration with JobCreationChain                              │
+│   └─ Goal: GitHub webhooks → Jobs created automatically                  │
+│                                                                             │
+│ Phase 2: Jenkins + Terraform (2 hrs)                                       │
+│   □ config/webhooks/tools/jenkins.yaml (token, build_completed)           │
+│   □ config/webhooks/tools/terraform.yaml (signature, plan/apply)          │
+│   □ RED tests: Both tools with same UniversalWebhookAdapter               │
+│   └─ Goal: No new Python classes, only config files!                      │
+│                                                                             │
+│ Phase 3: Prometheus (2 hrs)                                                │
+│   □ config/webhooks/tools/prometheus.yaml (no verification, alerts)       │
+│   □ WebhookEventStore interface (InMemory + DynamoDB)                     │
+│   □ CodeUChain WebhookEventChain for routing                              │
+│   └─ Goal: Event storage + chainable architecture                        │
+│                                                                             │
+│ Phase 4: Integration + Docs (2 hrs)                                        │
+│   □ E2E integration tests (webhook → Job/Deployment/Alert)               │
+│   □ CLI tool: validate-webhook-config.py (single/all/test modes)         │
+│   □ Comprehensive docs (README, examples, guides, data mapping)           │
+│   □ Frontend dashboard (WebhookConfig.tsx)                                │
+│   └─ Goal: Users can add custom tools via YAML!                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+🎯 KEY DESIGN PRINCIPLES
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. Config-Driven: All tool differences in YAML, not Python                 │
+│ 2. Single Adapter: UniversalWebhookAdapter for all tools                   │
+│ 3. JSON Path Extraction: Flexible, standardized field mapping              │
+│ 4. Immutable Contexts: CodeUChain ensures no mutation bugs                 │
+│ 5. Schema Validation: JSON Schema validates all configs upfront            │
+│ 6. TDD First: RED tests define expected behavior before coding            │
+│ 7. User-Friendly: Templates, CLI, docs make it easy to extend             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📁 FILE STRUCTURE (to be created)
+┌─────────────────────────────────────────────────────────────────────────────┐
+backend/
+├── src/
+│   ├── models/webhook.py                    # WebhookEvent, event types
+│   ├── components/
+│   │   ├── adapters/
+│   │   │   └── webhook_adapter.py           # UniversalWebhookAdapter
+│   │   ├── chains/
+│   │   │   └── webhook_chains.py            # WebhookEventChain (CodeUChain)
+│   │   └── links/
+│   │       └── webhook_links.py             # Error handling, routing links
+│   ├── services/
+│   │   └── webhook_config_loader.py         # Load & validate configs
+│   ├── db/
+│   │   └── webhook_store.py                 # Store interface (InMem + DynamoDB)
+│   └── webhook_routes.py                    # FastAPI router
+│
+├── tests/unit/
+│   ├── test_webhook_adapter.py              # Foundation tests (24 tests)
+│   ├── test_github_webhook_adapter.py       # GitHub tests (10 tests)
+│   ├── test_jenkins_terraform_adapters.py   # Jenkins/Terraform tests (10 tests)
+│   └── test_prometheus_webhook_adapter.py   # Prometheus tests (8 tests)
+│
+└── tests/integration/
+    └── test_webhook_flows.py                # E2E integration (15+ tests)
+
+config/webhooks/
+├── webhooks-config.schema.json              # JSON Schema validation
+├── tools/                                   # Public tool configs
+│   ├── github.yaml
+│   ├── jenkins.yaml
+│   ├── terraform.yaml
+│   ├── prometheus.yaml
+│   └── template.yaml                        # Users copy this for custom tools
+└── tools-private/                           # Private configs (gitignored)
+
+docs/webhooks/
+├── README.md                                # Getting started
+├── CONFIGURATION_REFERENCE.md               # All config options
+├── EXAMPLES.md                              # Annotated examples
+├── ADDING_NEW_TOOL.md                       # Step-by-step guide
+└── DATA_MAPPING_GUIDE.md                    # JSON path syntax
+
+backend/scripts/
+└── validate-webhook-config.py               # CLI validation tool
+
+src/components/webhooks/
+└── WebhookConfig.tsx                        # MUI dashboard component

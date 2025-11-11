@@ -1,0 +1,6 @@
+# Private webhook tool configurations
+# These configs are not version controlled as they may contain
+# sensitive information or internal tool definitions
+
+*
+!.gitignore

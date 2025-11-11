@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Webhook Tool Configuration Schema",
+  "type": "object",
+  "required": ["version", "type", "metadata", "integration"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Config schema version (semantic versioning)"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["tool", "schema", "iac", "plugin"],
+      "description": "Type of configuration"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["id", "name", "category"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Unique identifier (lowercase alphanumeric + hyphens)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Display name"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["version-control", "ci-cd", "cloud", "iac", "config-mgmt", 
+                   "containerization", "orchestration", "monitoring", "logging", 
+                   "security", "service-mesh", "testing", "artifacts", "collaboration", 
+                   "gitops", "developer-env"],
+          "description": "DevOps tool category"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Long description of tool"
+        }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "required": ["webhooks"],
+      "additionalProperties": false,
+      "properties": {
+        "webhooks": {
+          "type": "object",
+          "required": ["enabled", "endpoint", "verification"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether webhooks are enabled for this tool"
+            },
+            "endpoint": {
+              "type": "string",
+              "pattern": "^/api/webhooks/[a-z0-9-]+$",
+              "description": "Webhook endpoint path"
+            },
+            "verification": {
+              "type": "object",
+              "required": ["method"],
+              "additionalProperties": false,
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": ["hmac-sha256", "token", "signature", "none"],
+                  "description": "Signature verification method"
+                },
+                "header": {
+                  "type": "string",
+                  "description": "Header containing signature or token"
+                },
+                "secret_env_var": {
+                  "type": "string",
+                  "description": "Environment variable name containing secret"
+                }
+              }
+            },
+            "events": {
+              "type": "object",
+              "description": "Event type definitions",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "http_event_header": {
+                    "type": "string",
+                    "description": "HTTP header indicating event type"
+                  },
+                  "header_value": {
+                    "type": "string",
+                    "description": "Expected header value for this event"
+                  },
+                  "data_mapping": {
+                    "type": "object",
+                    "description": "JSONPath expressions mapping vendor fields",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "Optional feature flags",
+      "additionalProperties": true,
+      "properties": {
+        "auto_job_creation": { "type": "boolean" },
+        "auto_deployment": { "type": "boolean" },
+        "caching": { "type": "boolean" }
+      }
+    },
+    "contribution": {
+      "type": "object",
+      "description": "Attribution and contribution metadata",
+      "additionalProperties": true,
+      "properties": {
+        "author": { "type": "string" },
+        "license": { "type": "string" },
+        "allow_forks": { "type": "boolean" }
+      }
+    }
+  }
+}
