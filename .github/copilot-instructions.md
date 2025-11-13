@@ -622,6 +622,263 @@ npm run test:e2e
 
 ---
 
+## 📖 Storybook Development Pattern
+
+### Per-Page Stories (Quick Visual Reference)
+Every dashboard page gets a story file showing all page states without running backend.
+
+**File Location**: `src/app/dashboard/<page_name>/<page_name>.stories.tsx`
+
+**Required Stories**:
+1. **Default** - Page with typical mock data
+2. **Loading** - Loading state while fetching data
+3. **Error** - Error state with retry button visible
+4. **Empty** - Page with no data (zero jobs, zero deployments, etc.)
+
+**Example**:
+```typescript
+// src/app/dashboard/jobs/jobs.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react';
+import JobsPage from './page';
+
+const meta = { component: JobsPage, tags: ['autodocs'] } satisfies Meta<typeof JobsPage>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  render: () => <JobsPage />,
+  decorators: [
+    (Story) => (
+      <MockAPIProvider mode="default" jobs={mockJobs}>
+        <Story />
+      </MockAPIProvider>
+    ),
+  ],
+};
+
+export const Loading: Story = {
+  render: () => <JobsPage />,
+  decorators: [
+    (Story) => (
+      <MockAPIProvider mode="loading">
+        <Story />
+      </MockAPIProvider>
+    ),
+  ],
+};
+
+export const Error: Story = {
+  decorators: [
+    (Story) => (
+      <MockAPIProvider mode="error" errorMessage="Failed to fetch jobs">
+        <Story />
+      </MockAPIProvider>
+    ),
+  ],
+};
+
+export const Empty: Story = {
+  decorators: [
+    (Story) => (
+      <MockAPIProvider mode="default" jobs={[]}>
+        <Story />
+      </MockAPIProvider>
+    ),
+  ],
+};
+```
+
+**Current Page Stories**: DashboardPage, JobsPage, DeploymentsPage, AgentsPage (4 total)
+
+### Per-Component Stories (State Documentation)
+All reusable components must have stories documenting their variants.
+
+**File Location**: `src/components/<category>/<ComponentName>.stories.tsx`
+
+**Required Stories** (Minimum):
+1. **Default** - Typical usage
+2. **Loading** - If component shows loading state
+3. **Error** - If component shows error state
+4. **Disabled** - If component has disabled state
+5. **Additional Variants** - Size variations, color variants, etc.
+
+**Example**:
+```typescript
+// src/components/dashboard/LogViewer.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react';
+import LogViewer from './LogViewer';
+
+const meta = {
+  component: LogViewer,
+  tags: ['autodocs'],
+  argTypes: {
+    logs: { control: 'object' },
+    expanded: { control: 'boolean' },
+    isLoading: { control: 'boolean' },
+  },
+} satisfies Meta<typeof LogViewer>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  args: { logs: mockLogs, expanded: false },
+};
+
+export const Expanded: Story = {
+  args: { logs: mockLogs, expanded: true },
+};
+
+export const Loading: Story = {
+  args: { logs: [], isLoading: true, expanded: true },
+};
+
+export const Error: Story = {
+  args: { 
+    logs: [], 
+    error: new Error("Failed to fetch logs"),
+    expanded: true 
+  },
+};
+
+export const Empty: Story = {
+  args: { logs: [], expanded: true },
+};
+
+export const LargeLogs: Story = {
+  args: { logs: generateLargeMockLogs(1000), expanded: true },
+};
+```
+
+### Per-Field Component Pattern (Form Building)
+Use established field components instead of creating custom inputs. Each field has full Storybook documentation.
+
+**Established Field Components** (9 total):
+- TextField, SelectField, DateField, CheckboxField, RadioGroup
+- TextareaField, FileField, PasswordField, NumberField
+
+**Each field includes stories for**:
+- Default state
+- With value
+- With error
+- Disabled state
+- Loading state (if applicable)
+
+**Usage in Forms**:
+```typescript
+// GOOD - Use field components
+<TextField
+  label="Job Name"
+  placeholder="Enter job name"
+  value={jobName}
+  onChange={(e) => setJobName(e.target.value)}
+  error={!!errors.jobName}
+  helperText={errors.jobName}
+  required
+/>
+
+// AVOID - Don't create custom inputs
+<input
+  type="text"
+  placeholder="Job name"
+  value={jobName}
+  onChange={(e) => setJobName(e.target.value)}
+/>
+```
+
+**Field Component Benefits**:
+- ✅ Consistent styling across app
+- ✅ Built-in validation + error handling
+- ✅ Accessibility features (ARIA labels, keyboard nav)
+- ✅ Fully documented in Storybook
+- ✅ Reduces code duplication
+
+---
+
+## ✅ Component Creation Checklist
+
+When building a new component, follow this workflow:
+
+1. **Write TypeScript Props Interface** (RED)
+   ```typescript
+   interface MyComponentProps {
+     label: string;
+     value: string;
+     onChange: (value: string) => void;
+     error?: string;
+     disabled?: boolean;
+   }
+   ```
+
+2. **Create Storybook Story File** (RED)
+   - Add all 4+ required stories
+   - Define argTypes for interactive controls
+   - Run `npm run storybook` and verify visual appearance
+
+3. **Write Vitest Unit Tests** (RED)
+   - Test all props combinations
+   - Test user interactions (clicks, typing)
+   - Aim for 80%+ coverage
+
+4. **Write Cypress Component Tests** (RED)
+   - Test accessibility (ARIA labels, keyboard nav)
+   - Test responsive behavior
+   - Test error states
+
+5. **Implement Component** (GREEN)
+   - Satisfy all tests
+   - Follow MUI X patterns (Stack, Box, Grid)
+   - Use sx prop for styling (no css files)
+
+6. **Review in Storybook** (VERIFY)
+   - All stories render correctly
+   - No console warnings
+   - Responsive on mobile/tablet/desktop
+
+7. **Add Component Documentation** (COMPLETE)
+   - JSDoc comments on component
+   - Add to relevant .stories.tsx
+   - Link Storybook in PR
+
+---
+
+## 🎯 Storybook Usage Commands
+
+```bash
+# Start Storybook dev server
+npm run storybook
+
+# Build static Storybook site (for CI/CD)
+npm run build:storybook
+
+# Run Storybook tests with Vitest
+npm run test:unit -- --watch
+
+# Generate Storybook snapshots
+npm run test:storybook
+
+# View all stories with argTypes interactive controls
+# Open http://localhost:6006 in browser
+```
+
+---
+
+## 🏗️ Component File Structure
+
+Every new component follows this structure:
+
+```
+src/components/<category>/<ComponentName>/
+├── <ComponentName>.tsx           # Main component (50-150 lines)
+├── <ComponentName>.stories.tsx   # Storybook stories (100-150 lines)
+├── <ComponentName>.test.tsx      # Vitest tests (100-200 lines)
+├── __tests__/
+│   └── <ComponentName>.cy.tsx    # Cypress component tests (50-100 lines)
+└── index.ts                      # Export component
+```
+
+---
+
 ## Key Insights
 
 1. **Backend-Driven**: All state flows from FastAPI backend. Frontend queries via REST, manipulates via CodeUChain chains.
