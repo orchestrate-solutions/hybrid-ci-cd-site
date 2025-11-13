@@ -1,64 +1,43 @@
 /**
  * AgentsChain - CodeUChain for managing agent state
  * Pattern: Fetch → Filter → Sort → Return
+ * 
+ * Uses real API clients (src/lib/api/agents.ts) instead of mocks
  */
 
 import { Context, Chain, Link } from 'codeuchain';
+import { agentsApi } from '../api/agents';
 import type { Agent, FilterOptions, SortOptions, ChainError } from './types';
 
 /**
- * Mock API service - replace with actual API later
- */
-const mockAgentsApi = {
-  fetchAgents: async (): Promise<Agent[]> => {
-    // Simulated API call
-    return [
-      {
-        id: 'agent-1',
-        name: 'Agent-USEast-001',
-        status: 'ONLINE',
-        pool_id: 'us-east-pool',
-        last_heartbeat: new Date().toISOString(),
-        capacity: 8,
-      },
-      {
-        id: 'agent-2',
-        name: 'Agent-USEast-002',
-        status: 'BUSY',
-        pool_id: 'us-east-pool',
-        last_heartbeat: new Date().toISOString(),
-        capacity: 4,
-      },
-      {
-        id: 'agent-3',
-        name: 'Agent-EUWest-001',
-        status: 'ONLINE',
-        pool_id: 'eu-west-pool',
-        last_heartbeat: new Date(Date.now() - 30000).toISOString(),
-        capacity: 16,
-      },
-      {
-        id: 'agent-4',
-        name: 'Agent-APSEast-001',
-        status: 'OFFLINE',
-        pool_id: 'ap-southeast-pool',
-        last_heartbeat: new Date(Date.now() - 600000).toISOString(),
-        capacity: 8,
-      },
-    ];
-  },
-};
-
-/**
  * Link 1: Fetch agents from API
+ * Uses agentsApi.listAgents() and agentsApi.getPoolHealth()
  */
 export class FetchAgentsLink extends Link<Record<string, any>, Record<string, any>> {
+  constructor(private includePoolHealth: boolean = true) {
+    super();
+  }
+
   async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
     try {
-      const agents = await mockAgentsApi.fetchAgents();
-      return ctx
-        .insert('agents', agents)
+      // Fetch agents from /api/agents
+      const agents = await agentsApi.listAgents();
+      
+      let result = ctx.insert('agents', agents || [])
         .insert('fetch_timestamp', new Date().toISOString());
+      
+      // Optionally include pool health
+      if (this.includePoolHealth) {
+        try {
+          const poolHealth = await agentsApi.getPoolHealth();
+          result = result.insert('pool_health', poolHealth);
+        } catch (e) {
+          console.warn('Failed to fetch pool health:', e);
+          result = result.insert('pool_health', null);
+        }
+      }
+      
+      return result;
     } catch (error) {
       const err = error as ChainError;
       throw new Error(`Failed to fetch agents: ${err.message}`);
@@ -136,19 +115,35 @@ export class SortAgentsLink extends Link<Record<string, any>, Record<string, any
 
 /**
  * AgentsChain - Orchestrates all agent-related operations
+ * 
+ * ARCHITECTURE:
+ * - FetchAgentsLink: Calls agentsApi.listAgents() for /api/agents
+ * - Optional: Fetches agentsApi.getPoolHealth() for pool metrics
+ * - FilterAgentsLink: Filters by status, search term
+ * - SortAgentsLink: Sorts by field + direction (default: name asc)
+ * 
+ * USAGE:
+ * ```typescript
+ * const chain = new AgentsChain(includePoolHealth: true);
+ * const agents = await chain.execute(
+ *   { status: 'ONLINE' },
+ *   { field: 'name', direction: 'asc' }
+ * );
+ * const poolHealth = await chain.getPoolHealth();
+ * ```
  */
 export class AgentsChain {
   private chain: Chain;
 
-  constructor() {
+  constructor(private includePoolHealth: boolean = true) {
     this.chain = new Chain();
 
     // Add links in sequence
-    this.chain.addLink(new FetchAgentsLink(), 'fetch');
-    this.chain.addLink(new FilterAgentsLink(), 'filter');
-    this.chain.addLink(new SortAgentsLink(), 'sort');
+    this.chain.add_link(new FetchAgentsLink(includePoolHealth), 'fetch');
+    this.chain.add_link(new FilterAgentsLink(), 'filter');
+    this.chain.add_link(new SortAgentsLink(), 'sort');
 
-    // Connect links
+    // Connect links with predicates
     this.chain.connect('fetch', 'filter', () => true);
     this.chain.connect('filter', 'sort', () => true);
   }
@@ -164,5 +159,22 @@ export class AgentsChain {
 
     const result = await this.chain.run(ctx);
     return result.get('sorted_agents') || [];
+  }
+
+  /**
+   * Get pool health if included in chain
+   */
+  async getPoolHealth(filters?: FilterOptions, sort?: SortOptions): Promise<Record<string, any>> {
+    if (!this.includePoolHealth) {
+      throw new Error('Pool health not available; initialize chain with includePoolHealth: true');
+    }
+
+    const ctx = new Context({
+      filters: filters || {},
+      sort: sort || { field: 'name', direction: 'asc' },
+    });
+
+    const result = await this.chain.run(ctx);
+    return result.get('pool_health') || {};
   }
 }

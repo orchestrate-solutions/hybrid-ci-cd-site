@@ -1,68 +1,44 @@
 /**
  * DeploymentsChain - CodeUChain for managing deployment state
  * Pattern: Fetch → Filter → Sort → Return
+ * 
+ * Uses real API clients (src/lib/api/deployments.ts) instead of mocks
  */
 
 import { Context, Chain, Link } from 'codeuchain';
+import { deploymentsApi } from '../api/deployments';
 import type { Deployment, FilterOptions, SortOptions, ChainError } from './types';
 
 /**
- * Mock API service - replace with actual API later
- */
-const mockDeploymentsApi = {
-  fetchDeployments: async (): Promise<Deployment[]> => {
-    // Simulated API call
-    return [
-      {
-        id: 'deploy-1',
-        name: 'Frontend v2.0 - US-East',
-        status: 'COMPLETED',
-        version: '2.0.0',
-        region: 'us-east-1',
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-        updated_at: new Date(Date.now() - 3600000).toISOString(),
-      },
-      {
-        id: 'deploy-2',
-        name: 'Backend v1.9.5 - EU-West',
-        status: 'IN_PROGRESS',
-        version: '1.9.5',
-        region: 'eu-west-1',
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 'deploy-3',
-        name: 'Database Migration - APAC',
-        status: 'PENDING',
-        version: '1.0',
-        region: 'ap-southeast-1',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 'deploy-4',
-        name: 'API Gateway v3.1 - US-West',
-        status: 'FAILED',
-        version: '3.1.0',
-        region: 'us-west-2',
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        updated_at: new Date(Date.now() - 3600000).toISOString(),
-      },
-    ];
-  },
-};
-
-/**
  * Link 1: Fetch deployments from API
+ * Uses deploymentsApi.listDeployments() and optional service history
  */
 export class FetchDeploymentsLink extends Link<Record<string, any>, Record<string, any>> {
+  constructor(private includeHistory: boolean = false, private serviceId?: string) {
+    super();
+  }
+
   async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
     try {
-      const deployments = await mockDeploymentsApi.fetchDeployments();
-      return ctx
-        .insert('deployments', deployments)
+      // Fetch deployments from /api/deployments
+      const deployments = await deploymentsApi.listDeployments();
+      
+      let result = ctx
+        .insert('deployments', deployments || [])
         .insert('fetch_timestamp', new Date().toISOString());
+      
+      // Optionally include service history
+      if (this.includeHistory && this.serviceId) {
+        try {
+          const history = await deploymentsApi.getServiceHistory(this.serviceId);
+          result = result.insert('service_history', history);
+        } catch (e) {
+          console.warn(`Failed to fetch history for service ${this.serviceId}:`, e);
+          result = result.insert('service_history', []);
+        }
+      }
+      
+      return result;
     } catch (error) {
       const err = error as ChainError;
       throw new Error(`Failed to fetch deployments: ${err.message}`);
@@ -89,7 +65,7 @@ export class FilterDeploymentsLink extends Link<Record<string, any>, Record<stri
       filtered = filtered.filter((d: Deployment) => d.status === filters.status);
     }
 
-    // Filter by region
+    // Filter by region/environment
     if (filters.region && filters.region !== 'ALL') {
       filtered = filtered.filter((d: Deployment) => d.region === filters.region);
     }
@@ -145,19 +121,35 @@ export class SortDeploymentsLink extends Link<Record<string, any>, Record<string
 
 /**
  * DeploymentsChain - Orchestrates all deployment-related operations
+ * 
+ * ARCHITECTURE:
+ * - FetchDeploymentsLink: Calls deploymentsApi.listDeployments() for /api/deployments
+ * - Optional: Fetches deploymentsApi.getServiceHistory(serviceId) for timeline view
+ * - FilterDeploymentsLink: Filters by status, region/environment, search term
+ * - SortDeploymentsLink: Sorts by field + direction (default: created_at desc)
+ * 
+ * USAGE:
+ * ```typescript
+ * const chain = new DeploymentsChain(includeHistory: true, serviceId: 'my-service');
+ * const deployments = await chain.execute(
+ *   { status: 'COMPLETED', region: 'us-east-1' },
+ *   { field: 'created_at', direction: 'desc' }
+ * );
+ * const history = await chain.getServiceHistory();
+ * ```
  */
 export class DeploymentsChain {
   private chain: Chain;
 
-  constructor() {
+  constructor(private includeHistory: boolean = false, private serviceId?: string) {
     this.chain = new Chain();
 
     // Add links in sequence
-    this.chain.addLink(new FetchDeploymentsLink(), 'fetch');
-    this.chain.addLink(new FilterDeploymentsLink(), 'filter');
-    this.chain.addLink(new SortDeploymentsLink(), 'sort');
+    this.chain.add_link(new FetchDeploymentsLink(includeHistory, serviceId), 'fetch');
+    this.chain.add_link(new FilterDeploymentsLink(), 'filter');
+    this.chain.add_link(new SortDeploymentsLink(), 'sort');
 
-    // Connect links
+    // Connect links with predicates
     this.chain.connect('fetch', 'filter', () => true);
     this.chain.connect('filter', 'sort', () => true);
   }
@@ -173,5 +165,22 @@ export class DeploymentsChain {
 
     const result = await this.chain.run(ctx);
     return result.get('sorted_deployments') || [];
+  }
+
+  /**
+   * Get service history if included in chain
+   */
+  async getServiceHistory(filters?: FilterOptions, sort?: SortOptions): Promise<Record<string, any>[]> {
+    if (!this.includeHistory) {
+      throw new Error('Service history not available; initialize chain with includeHistory: true');
+    }
+
+    const ctx = new Context({
+      filters: filters || {},
+      sort: sort || { field: 'created_at', direction: 'desc' },
+    });
+
+    const result = await this.chain.run(ctx);
+    return result.get('service_history') || [];
   }
 }
