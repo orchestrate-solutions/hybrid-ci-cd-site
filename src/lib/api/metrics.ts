@@ -48,6 +48,7 @@ function isDemoModeEnabled(): boolean {
 
 /**
  * Get overall dashboard metrics
+ * Calls /api/dashboard/summary which provides aggregated metrics
  */
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   // Check demo mode first
@@ -55,32 +56,54 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     return getDemoMetrics();
   }
 
-  const res = await fetch(`${BASE_URL}/api/metrics/dashboard/`);
+  const res = await fetch(`${BASE_URL}/api/dashboard/summary`);
   if (!res.ok) {
     throw new Error(`Failed to fetch dashboard metrics: ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  return data.metrics || data;
 }
 
 /**
  * Get job timeline data for charts
+ * Calls /api/dashboard/jobs with limit for timeline
  */
 export async function getJobTimeline(limit = 100): Promise<JobTimeline[]> {
-  const res = await fetch(`${BASE_URL}/api/metrics/jobs/timeline/?limit=${limit}`);
+  const res = await fetch(`${BASE_URL}/api/dashboard/jobs?limit=${limit}&status=COMPLETED,FAILED`);
   if (!res.ok) {
     throw new Error(`Failed to fetch job timeline: ${res.status}`);
   }
   const data = await res.json();
-  return data.jobs || [];
+  return (data.jobs || []).map((job: any) => ({
+    timestamp: job.completed_at || job.created_at,
+    job_id: job.id,
+    status: job.status,
+    duration_seconds: job.duration_seconds,
+  }));
 }
 
 /**
  * Get deployment metrics
+ * Calls /api/dashboard/deployments to extract metrics
  */
 export async function getDeploymentMetrics(): Promise<DeploymentMetrics> {
-  const res = await fetch(`${BASE_URL}/api/metrics/deployments/`);
+  const res = await fetch(`${BASE_URL}/api/dashboard/deployments`);
   if (!res.ok) {
     throw new Error(`Failed to fetch deployment metrics: ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  const deployments = data.deployments || [];
+  
+  const successful = deployments.filter((d: any) => d.status === 'COMPLETED').length;
+  const failed = deployments.filter((d: any) => d.status === 'FAILED').length;
+  const avgTime = deployments.length > 0
+    ? deployments.reduce((sum: number, d: any) => sum + (d.duration_seconds || 0), 0) / deployments.length
+    : 0;
+
+  return {
+    total_deployments: deployments.length,
+    successful_deployments: successful,
+    failed_deployments: failed,
+    average_deployment_time_seconds: avgTime,
+  };
 }
