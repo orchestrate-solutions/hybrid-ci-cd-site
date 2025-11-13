@@ -1,13 +1,17 @@
 'use client';
 
 /**
- * JobsPage - GREEN Phase Implementation
- *
- * Minimal implementation to make all RED phase tests pass.
- * Displays jobs in MUI Data Grid with filtering, sorting, pagination.
+ * Jobs Page - MVP Dashboard
+ * 
+ * Comprehensive jobs management with:
+ * - Filterable/sortable job table
+ * - Inline log viewer (expandable)
+ * - Real-time updates
+ * - Responsive design
+ * - Quick actions (logs, details)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -16,7 +20,6 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -30,100 +33,190 @@ import {
   TableRow,
   TableSortLabel,
   TablePagination,
+  Collapse,
+  IconButton,
+  TextField,
+  Stack,
+  Card,
+  CardContent,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { listJobs } from '@/lib/api/jobs';
-import { Job, JobStatus, JobPriority, ListJobsParams } from '@/lib/types/jobs';
+import {
+  Add as AddIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
+import { useJobs, useRealTime } from '@/lib/hooks';
+import { LogViewer } from '@/components/jobs/LogViewer';
+import type { Job, JobStatus, JobPriority } from '@/lib/types/jobs';
+
+/**
+ * Priority Color Map
+ */
+const PRIORITY_COLORS: Record<JobPriority, 'default' | 'success' | 'warning' | 'error'> = {
+  LOW: 'default',
+  NORMAL: 'success',
+  HIGH: 'warning',
+  CRITICAL: 'error',
+};
+
+/**
+ * Status Color Map
+ */
+const STATUS_COLORS: Record<JobStatus, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
+  QUEUED: 'warning',
+  RUNNING: 'info',
+  COMPLETED: 'success',
+  FAILED: 'error',
+  CANCELED: 'default',
+};
 
 /**
  * Status Badge Component
  */
 function StatusBadge({ status }: { status: JobStatus }) {
-  const colorMap: Record<JobStatus, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
-    QUEUED: 'warning',
-    RUNNING: 'info',
-    COMPLETED: 'success',
-    FAILED: 'error',
-    CANCELED: 'default',
-  };
-
   return (
     <Chip
       label={status}
-      color={colorMap[status]}
+      color={STATUS_COLORS[status]}
       size="small"
-      data-testid={`status-badge-${status}`}
+      sx={{ fontWeight: 600 }}
     />
   );
 }
 
 /**
- * JobsPage Component
+ * Priority Badge Component
+ */
+function PriorityBadge({ priority }: { priority: JobPriority }) {
+  return (
+    <Chip
+      label={priority}
+      color={PRIORITY_COLORS[priority]}
+      size="small"
+      variant="outlined"
+    />
+  );
+}
+
+/**
+ * Job Row with Inline Log Viewer
+ */
+function JobRow({ job, onExpandClick, isExpanded }: { job: Job; onExpandClick: () => void; isExpanded: boolean }) {
+  return (
+    <>
+      <TableRow hover>
+        <TableCell>
+          <IconButton
+            size="small"
+            onClick={onExpandClick}
+            sx={{ mr: 1 }}
+          >
+            {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+          {job.name}
+        </TableCell>
+        <TableCell>
+          <StatusBadge status={job.status} />
+        </TableCell>
+        <TableCell>
+          <PriorityBadge priority={job.priority} />
+        </TableCell>
+        <TableCell sx={{ fontSize: '0.875rem', color: 'textSecondary' }}>
+          {new Date(job.created_at).toLocaleString()}
+        </TableCell>
+        <TableCell sx={{ fontSize: '0.875rem', color: 'textSecondary' }}>
+          {job.updated_at ? new Date(job.updated_at).toLocaleString() : '-'}
+        </TableCell>
+        <TableCell>
+          {job.progress !== undefined && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ flexGrow: 1, height: 6, backgroundColor: '#e0e0e0', borderRadius: 1 }}>
+                <Box
+                  sx={{
+                    height: '100%',
+                    width: `${job.progress}%`,
+                    backgroundColor: job.progress === 100 ? '#4caf50' : '#2196f3',
+                    borderRadius: 1,
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </Box>
+              <Typography variant="caption" sx={{ minWidth: 30 }}>
+                {job.progress}%
+              </Typography>
+            </Box>
+          )}
+        </TableCell>
+      </TableRow>
+
+      {/* Inline Log Viewer */}
+      <TableRow>
+        <TableCell colSpan={6} sx={{ p: 0, borderBottom: isExpanded ? '1px solid' : 'none' }}>
+          <Collapse in={isExpanded} timeout="auto">
+            <Box sx={{ p: 2, backgroundColor: '#f9f9f9' }}>
+              <LogViewer jobId={job.id} maxHeight="500px" />
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  );
+}
+
+/**
+ * Jobs Page Component
  */
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [orderBy, setOrderBy] = useState<string>('created_at');
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
-  const [filters, setFilters] = useState<{
-    status?: JobStatus;
-    priority?: JobPriority;
-  }>({});
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const [search, setSearch] = useState('');
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
-  // Fetch jobs function
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<JobStatus | ''>('');
+  const [priorityFilter, setPriorityFilter] = useState<JobPriority | ''>('');
 
-      const params: ListJobsParams = {
-        limit: rowsPerPage,
-        offset: page * rowsPerPage,
-        status: filters.status,
-        priority: filters.priority,
-        sort_by: orderBy as any,
-        sort_order: order,
-      };
+  // Fetch jobs with current filters
+  const { jobs, loading, error, refetch } = useJobs({
+    status: statusFilter || undefined,
+    priority: priorityFilter || undefined,
+    limit: rowsPerPage,
+    offset: page * rowsPerPage,
+    search: search || undefined,
+  });
 
-      const response = await listJobs(params);
-      setJobs(response.jobs);
-      setTotal(response.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch jobs');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch jobs on mount and when dependencies change
-  useEffect(() => {
-    fetchJobs();
-  }, [page, rowsPerPage, orderBy, order, filters]);
+  // Set up real-time polling
+  useRealTime({
+    onRefresh: refetch,
+    enabled: true,
+  });
 
   // Handle filter changes
-  const handleStatusFilterChange = (status: JobStatus | '') => {
-    setPage(0); // Reset page FIRST
-    setFilters(prev => ({
-      ...prev,
-      status: status || undefined,
-    }));
+  const handleStatusChange = (status: JobStatus | '') => {
+    setPage(0);
+    setStatusFilter(status);
   };
 
-  const handlePriorityFilterChange = (priority: JobPriority | '') => {
-    setPage(0); // Reset page FIRST
-    setFilters(prev => ({
-      ...prev,
-      priority: priority || undefined,
-    }));
+  const handlePriorityChange = (priority: JobPriority | '') => {
+    setPage(0);
+    setPriorityFilter(priority);
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPage(0);
+    setSearch(event.target.value);
   };
 
   const handleResetFilters = () => {
-    setPage(0); // Reset page FIRST
-    setFilters({});
+    setPage(0);
+    setStatusFilter('');
+    setPriorityFilter('');
+    setSearch('');
+    setOrderBy('created_at');
+    setOrder('desc');
   };
 
   // Handle sorting
@@ -134,7 +227,7 @@ export default function JobsPage() {
   };
 
   // Handle pagination
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -147,123 +240,140 @@ export default function JobsPage() {
   if (loading && jobs.length === 0) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box component="main">
-          <Typography variant="h4" component="h1" data-testid="jobs-header" sx={{ mb: 3 }}>
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ mb: 3, fontWeight: 700 }}>
             Jobs
           </Typography>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-            <CircularProgress data-testid="loading-spinner" />
+            <CircularProgress />
           </Box>
         </Box>
       </Container>
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Alert
-          severity="error"
-          action={
-            <Button color="inherit" size="small" onClick={fetchJobs}>
-              Retry
-            </Button>
-          }
-          data-testid="error-alert"
-        >
-          {error}
-        </Alert>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box component="main">
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" component="h1" data-testid="jobs-header">
-            Jobs
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            data-testid="create-job-button"
-          >
-            Create Job
-          </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+              Jobs
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
+              Manage and monitor all jobs in the system
+            </Typography>
+          </Box>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={refetch}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+            >
+              Create Job
+            </Button>
+          </Stack>
         </Box>
 
-        {/* Filters */}
-        <Paper sx={{ p: 2, mb: 3 }} data-testid="jobs-filters">
-          <Typography variant="h6" gutterBottom>
-            Filters
-          </Typography>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={filters.status || ''}
-                  label="Status"
-                  onChange={(e) => handleStatusFilterChange(e.target.value as JobStatus)}
-                  data-testid="filter-status"
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="QUEUED">Queued</MenuItem>
-                  <MenuItem value="RUNNING">Running</MenuItem>
-                  <MenuItem value="COMPLETED">Completed</MenuItem>
-                  <MenuItem value="FAILED">Failed</MenuItem>
-                  <MenuItem value="CANCELED">Canceled</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={filters.priority || ''}
-                  label="Priority"
-                  onChange={(e) => handlePriorityFilterChange(e.target.value as JobPriority)}
-                  data-testid="filter-priority"
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="LOW">Low</MenuItem>
-                  <MenuItem value="NORMAL">Normal</MenuItem>
-                  <MenuItem value="HIGH">High</MenuItem>
-                  <MenuItem value="CRITICAL">Critical</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6}>
-              <Button
-                variant="outlined"
-                onClick={handleResetFilters}
-                data-testid="reset-filters-button"
-              >
-                Reset Filters
+        {/* Error State */}
+        {error && (
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={refetch}>
+                Retry
               </Button>
-            </Grid>
-          </Grid>
+            }
+          >
+            {error.message || String(error)}
+          </Alert>
+        )}
+
+        {/* Filters Section */}
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+            Filters & Search
+          </Typography>
+          
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            {/* Search */}
+            <TextField
+              size="small"
+              placeholder="Search jobs..."
+              value={search}
+              onChange={handleSearchChange}
+              variant="outlined"
+              label="Search"
+              sx={{ flex: 1, minWidth: 150 }}
+            />
+
+            {/* Status Filter */}
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={(e) => handleStatusChange(e.target.value as JobStatus | '')}
+              >
+                <MenuItem value="">All Statuses</MenuItem>
+                <MenuItem value="QUEUED">Queued</MenuItem>
+                <MenuItem value="RUNNING">Running</MenuItem>
+                <MenuItem value="COMPLETED">Completed</MenuItem>
+                <MenuItem value="FAILED">Failed</MenuItem>
+                <MenuItem value="CANCELED">Canceled</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Priority Filter */}
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Priority</InputLabel>
+              <Select
+                value={priorityFilter}
+                label="Priority"
+                onChange={(e) => handlePriorityChange(e.target.value as JobPriority | '')}
+              >
+                <MenuItem value="">All Priorities</MenuItem>
+                <MenuItem value="LOW">Low</MenuItem>
+                <MenuItem value="NORMAL">Normal</MenuItem>
+                <MenuItem value="HIGH">High</MenuItem>
+                <MenuItem value="CRITICAL">Critical</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Reset Button */}
+            <Button
+              variant="outlined"
+              onClick={handleResetFilters}
+            >
+              Reset Filters
+            </Button>
+          </Stack>
         </Paper>
 
         {/* Jobs Table */}
-        <Paper>
+        <Paper sx={{ overflow: 'auto' }}>
           <TableContainer>
-            <Table data-testid="jobs-table">
-              <TableHead>
+            <Table>
+              <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableRow>
-                  <TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
                     <TableSortLabel
                       active={orderBy === 'name'}
                       direction={orderBy === 'name' ? order : 'asc'}
                       onClick={() => handleSort('name')}
                     >
-                      Name
+                      Job Name
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
                     <TableSortLabel
                       active={orderBy === 'status'}
                       direction={orderBy === 'status' ? order : 'asc'}
@@ -272,7 +382,7 @@ export default function JobsPage() {
                       Status
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
                     <TableSortLabel
                       active={orderBy === 'priority'}
                       direction={orderBy === 'priority' ? order : 'asc'}
@@ -281,7 +391,7 @@ export default function JobsPage() {
                       Priority
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
                     <TableSortLabel
                       active={orderBy === 'created_at'}
                       direction={orderBy === 'created_at' ? order : 'asc'}
@@ -290,53 +400,69 @@ export default function JobsPage() {
                       Created
                     </TableSortLabel>
                   </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    <TableSortLabel
+                      active={orderBy === 'updated_at'}
+                      direction={orderBy === 'updated_at' ? order : 'asc'}
+                      onClick={() => handleSort('updated_at')}
+                    >
+                      Updated
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Progress</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {jobs.map((job) => (
-                  <TableRow key={job.id} hover>
-                    <TableCell>{job.name}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={job.status} />
-                    </TableCell>
-                    <TableCell>{job.priority}</TableCell>
-                    <TableCell>{new Date(job.created_at).toLocaleString()}</TableCell>
-                  </TableRow>
+                  <JobRow
+                    key={job.id}
+                    job={job}
+                    isExpanded={expandedJobId === job.id}
+                    onExpandClick={() =>
+                      setExpandedJobId(expandedJobId === job.id ? null : job.id)
+                    }
+                  />
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
+
           <TablePagination
             component="div"
-            count={total}
+            count={jobs.length >= rowsPerPage ? (page + 1) * rowsPerPage + 1 : (page * rowsPerPage) + jobs.length}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
-            rowsPerPageOptions={[25, 50, 100]}
-            data-testid="pagination"
+            rowsPerPageOptions={[10, 25, 50, 100]}
           />
         </Paper>
 
         {/* Empty State */}
-        {jobs.length === 0 && !loading && (
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            minHeight="200px"
-            mt={3}
-            data-testid="empty-state"
-          >
-            <Typography variant="h6" color="textSecondary">
-              No jobs found
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-              Try adjusting your filters or create a new job.
-            </Typography>
-          </Box>
+        {jobs.length === 0 && !loading && !error && (
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 6 }}>
+              <Typography variant="h6" color="textSecondary" gutterBottom>
+                No jobs found
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Try adjusting your filters or create a new job to get started.
+              </Typography>
+            </CardContent>
+          </Card>
         )}
+
+        {/* Info Card */}
+        <Card sx={{ backgroundColor: '#e3f2fd' }}>
+          <CardContent>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+              💡 Tip: Click the expand icon to view logs for any job
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              Real-time log streaming, search, follow mode, and download capabilities available.
+            </Typography>
+          </CardContent>
+        </Card>
       </Box>
     </Container>
   );

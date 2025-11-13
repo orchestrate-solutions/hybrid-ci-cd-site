@@ -24,7 +24,6 @@ import {
   CircularProgress,
   Alert,
   Button,
-  Grid,
   Paper,
   Card,
   CardContent,
@@ -142,7 +141,7 @@ export default function DashboardPage() {
               </Button>
             }
           >
-            {error}
+            {error.message || String(error)}
           </Alert>
         </Box>
       </Container>
@@ -210,9 +209,9 @@ export default function DashboardPage() {
             System Status
           </Typography>
 
-          <Grid container spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
             {/* Jobs Card */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ flex: { xs: '100%', sm: '50%', md: '25%' } }}>
               <StatusCard
                 title="Jobs Running"
                 value={metrics.runningJobs}
@@ -220,10 +219,10 @@ export default function DashboardPage() {
                 color={metrics.runningJobs > 0 ? 'success' : 'info'}
                 trend={metrics.runningJobs > 0 ? 'up' : 'neutral'}
               />
-            </Grid>
+            </Box>
 
             {/* Failed Jobs Card */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ flex: { xs: '100%', sm: '50%', md: '25%' } }}>
               <StatusCard
                 title="Failed Jobs"
                 value={metrics.failedJobs}
@@ -231,28 +230,28 @@ export default function DashboardPage() {
                 color={metrics.failedJobs > 0 ? 'error' : 'success'}
                 trend={metrics.failedJobs > 0 ? 'up' : 'neutral'}
               />
-            </Grid>
+            </Box>
 
             {/* Agents Card */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ flex: { xs: '100%', sm: '50%', md: '25%' } }}>
               <StatusCard
                 title="Agents Online"
                 value={`${metrics.onlineAgents}/${metrics.totalAgents}`}
                 icon="🤖"
                 color={metrics.onlineAgents === metrics.totalAgents ? 'success' : 'warning'}
               />
-            </Grid>
+            </Box>
 
             {/* Deployments Card */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ flex: { xs: '100%', sm: '50%', md: '25%' } }}>
               <StatusCard
                 title="Deployments"
                 value={metrics.totalDeployments}
                 icon="🚀"
                 color={metrics.inProgressDeployments === 0 ? 'success' : 'info'}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Stack>
         </Box>
 
         {/* Queued Jobs Section */}
@@ -287,9 +286,9 @@ export default function DashboardPage() {
         </Box>
 
         {/* Quick Stats Section */}
-        <Grid container spacing={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           {/* Success Rate */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Box sx={{ flex: { xs: '100%', sm: '50%', md: '33.33%' } }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 600 }}>
                 Deployment Success Rate
@@ -301,10 +300,10 @@ export default function DashboardPage() {
                 {metrics.completedDeployments} of {metrics.totalDeployments} deployments
               </Typography>
             </Paper>
-          </Grid>
+          </Box>
 
           {/* Agent Capacity */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Box sx={{ flex: { xs: '100%', sm: '50%', md: '33.33%' } }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 600 }}>
                 Agent Capacity Utilization
@@ -314,7 +313,7 @@ export default function DashboardPage() {
                 sx={{
                   fontWeight: 700,
                   mt: 1,
-                  color: stats.agentCapacity > 80 ? '#ff9800' : '#4caf50',
+                  color: parseInt(String(stats.agentCapacity)) > 80 ? '#ff9800' : '#4caf50',
                 }}
               >
                 {stats.agentCapacity}%
@@ -323,10 +322,10 @@ export default function DashboardPage() {
                 {metrics.busyAgents} busy of {metrics.onlineAgents} online agents
               </Typography>
             </Paper>
-          </Grid>
+          </Box>
 
           {/* Jobs Completed */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Box sx={{ flex: { xs: '100%', sm: '50%', md: '33.33%' } }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 600 }}>
                 Jobs Completed
@@ -338,8 +337,8 @@ export default function DashboardPage() {
                 {metrics.totalJobs} total jobs in system
               </Typography>
             </Paper>
-          </Grid>
-        </Grid>
+          </Box>
+        </Stack>
 
         {/* Quick Links Section */}
         <Box>

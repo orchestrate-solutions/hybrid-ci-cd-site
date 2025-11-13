@@ -6,12 +6,12 @@
  */
 
 import { Context, Chain, Link } from 'codeuchain';
-import { deploymentsApi } from '../api/deployments';
+import { listDeployments, getServiceHistory } from '../api/deployments';
 import type { Deployment, FilterOptions, SortOptions, ChainError } from './types';
 
 /**
  * Link 1: Fetch deployments from API
- * Uses deploymentsApi.listDeployments() and optional service history
+ * Uses listDeployments() and optional service history
  */
 export class FetchDeploymentsLink extends Link<Record<string, any>, Record<string, any>> {
   constructor(private includeHistory: boolean = false, private serviceId?: string) {
@@ -21,19 +21,20 @@ export class FetchDeploymentsLink extends Link<Record<string, any>, Record<strin
   async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
     try {
       // Fetch deployments from /api/deployments
-      const deployments = await deploymentsApi.listDeployments();
+      const response = await listDeployments();
+      const deployments = response.deployments || [];
       
       let result = ctx
-        .insert('deployments', deployments || [])
+        .insert('deployments', deployments)
         .insert('fetch_timestamp', new Date().toISOString());
       
       // Optionally include service history
       if (this.includeHistory && this.serviceId) {
         try {
-          const history = await deploymentsApi.getServiceHistory(this.serviceId);
+          const history = await getServiceHistory(this.serviceId);
           result = result.insert('service_history', history);
         } catch (e) {
-          console.warn(`Failed to fetch history for service ${this.serviceId}:`, e);
+          console.warn('Failed to fetch service history:', e);
           result = result.insert('service_history', []);
         }
       }
@@ -50,35 +51,32 @@ export class FetchDeploymentsLink extends Link<Record<string, any>, Record<strin
  * Link 2: Filter deployments based on criteria
  */
 export class FilterDeploymentsLink extends Link<Record<string, any>, Record<string, any>> {
+  constructor(private options?: FilterOptions) {
+    super();
+  }
+
   async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
     const deployments = ctx.get('deployments') || [];
-    const filters = ctx.get('filters') as FilterOptions | undefined;
+    const options = this.options || {};
 
-    if (!filters) {
-      return ctx.insert('filtered_deployments', deployments);
-    }
-
-    let filtered = [...deployments];
+    let filtered = deployments;
 
     // Filter by status
-    if (filters.status && filters.status !== 'ALL') {
-      filtered = filtered.filter((d: Deployment) => d.status === filters.status);
+    if (options.status) {
+      filtered = filtered.filter((d: Deployment) => d.status === options.status);
     }
 
-    // Filter by region/environment
-    if (filters.region && filters.region !== 'ALL') {
-      filtered = filtered.filter((d: Deployment) => d.region === filters.region);
+    // Filter by environment
+    if (options.environment) {
+      filtered = filtered.filter((d: Deployment) => d.environment === options.environment);
     }
 
-    // Search by name
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter((d: Deployment) =>
-        d.name.toLowerCase().includes(searchLower)
-      );
+    // Filter by service
+    if (options.service_id) {
+      filtered = filtered.filter((d: Deployment) => d.service_id === options.service_id);
     }
 
-    return ctx.insert('filtered_deployments', filtered).insert('filter_applied', true);
+    return ctx.insert('deployments_filtered', filtered);
   }
 }
 
@@ -86,101 +84,63 @@ export class FilterDeploymentsLink extends Link<Record<string, any>, Record<stri
  * Link 3: Sort deployments
  */
 export class SortDeploymentsLink extends Link<Record<string, any>, Record<string, any>> {
-  async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
-    const deployments = ctx.get('filtered_deployments') || [];
-    const sort = ctx.get('sort') as SortOptions | undefined;
+  constructor(private options?: SortOptions) {
+    super();
+  }
 
-    if (!sort) {
-      // Default: sort by created_at descending
-      const sorted = [...deployments].sort((a: Deployment, b: Deployment) => {
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-      return ctx.insert('sorted_deployments', sorted);
-    }
+  async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
+    const deployments = ctx.get('deployments_filtered') || ctx.get('deployments') || [];
+    const options = this.options || { field: 'deployed_at', direction: 'desc' };
 
     const sorted = [...deployments].sort((a: Deployment, b: Deployment) => {
-      let aVal: any = a[sort.field as keyof Deployment];
-      let bVal: any = b[sort.field as keyof Deployment];
+      const aVal = (a as any)[options.field];
+      const bVal = (b as any)[options.field];
 
-      // Handle dates
-      if (sort.field.includes('_at')) {
-        aVal = new Date(aVal).getTime();
-        bVal = new Date(bVal).getTime();
-      }
-
-      if (sort.direction === 'asc') {
-        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-      } else {
-        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
-      }
+      if (aVal < bVal) return options.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return options.direction === 'asc' ? 1 : -1;
+      return 0;
     });
 
-    return ctx.insert('sorted_deployments', sorted);
+    return ctx.insert('deployments_sorted', sorted);
   }
 }
 
 /**
- * DeploymentsChain - Orchestrates all deployment-related operations
+ * DeploymentsChain - Orchestrates deployment fetching, filtering, and sorting
  * 
- * ARCHITECTURE:
- * - FetchDeploymentsLink: Calls deploymentsApi.listDeployments() for /api/deployments
- * - Optional: Fetches deploymentsApi.getServiceHistory(serviceId) for timeline view
- * - FilterDeploymentsLink: Filters by status, region/environment, search term
- * - SortDeploymentsLink: Sorts by field + direction (default: created_at desc)
- * 
- * USAGE:
- * ```typescript
- * const chain = new DeploymentsChain(includeHistory: true, serviceId: 'my-service');
- * const deployments = await chain.execute(
- *   { status: 'COMPLETED', region: 'us-east-1' },
- *   { field: 'created_at', direction: 'desc' }
- * );
- * const history = await chain.getServiceHistory();
- * ```
+ * Usage:
+ *   const chain = new DeploymentsChain({ includeHistory: true });
+ *   const result = await chain.run();
+ *   const deployments = result.get('deployments_sorted');
  */
 export class DeploymentsChain {
   private chain: Chain;
 
-  constructor(private includeHistory: boolean = false, private serviceId?: string) {
+  constructor(options?: { includeHistory?: boolean; serviceId?: string }) {
     this.chain = new Chain();
 
-    // Add links in sequence
-    this.chain.add_link(new FetchDeploymentsLink(includeHistory, serviceId), 'fetch');
-    this.chain.add_link(new FilterDeploymentsLink(), 'filter');
-    this.chain.add_link(new SortDeploymentsLink(), 'sort');
+    // Add links in order
+    const fetchLink = new FetchDeploymentsLink(options?.includeHistory, options?.serviceId);
+    const filterLink = new FilterDeploymentsLink();
+    const sortLink = new SortDeploymentsLink();
 
-    // Connect links with predicates
+    this.chain.add_link(fetchLink, 'fetch');
+    this.chain.add_link(filterLink, 'filter');
+    this.chain.add_link(sortLink, 'sort');
+
+    // Connect links (all → next)
     this.chain.connect('fetch', 'filter', () => true);
     this.chain.connect('filter', 'sort', () => true);
   }
 
   /**
-   * Execute chain with optional filters and sort
+   * Run the chain with initial context
    */
-  async execute(filters?: FilterOptions, sort?: SortOptions): Promise<Deployment[]> {
-    const ctx = new Context({
-      filters: filters || {},
-      sort: sort || { field: 'created_at', direction: 'desc' },
-    });
-
+  async run(initialData?: Record<string, any>): Promise<any> {
+    const ctx = new Context(initialData || {});
     const result = await this.chain.run(ctx);
-    return result.get('sorted_deployments') || [];
-  }
-
-  /**
-   * Get service history if included in chain
-   */
-  async getServiceHistory(filters?: FilterOptions, sort?: SortOptions): Promise<Record<string, any>[]> {
-    if (!this.includeHistory) {
-      throw new Error('Service history not available; initialize chain with includeHistory: true');
-    }
-
-    const ctx = new Context({
-      filters: filters || {},
-      sort: sort || { field: 'created_at', direction: 'desc' },
-    });
-
-    const result = await this.chain.run(ctx);
-    return result.get('service_history') || [];
+    return result.to_dict();
   }
 }
+
+export default DeploymentsChain;
