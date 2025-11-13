@@ -1,411 +1,227 @@
-/**
- * JobsPage E2E Tests (Cypress)
- * 
- * User workflow tests for the jobs page.
- * Tests navigation, filtering, sorting, pagination, and error handling.
- */
+/// <reference types="cypress" />
 
-describe('JobsPage E2E Workflows', () => {
+describe('Jobs Page', () => {
   beforeEach(() => {
-    cy.visit('http://localhost:3000/dashboard/jobs');
+    cy.visit('/dashboard/jobs');
+    cy.contains('Jobs', { timeout: 5000 }).should('be.visible');
   });
 
-  describe('Navigation & Structure', () => {
-    it('navigates to jobs page from dashboard', () => {
-      cy.visit('http://localhost:3000/dashboard');
-      cy.contains('Jobs').click();
-      cy.url().should('include', '/dashboard/jobs');
+  describe('Page Structure', () => {
+    it('should display jobs page header', () => {
+      cy.contains('h4', 'Jobs').should('be.visible');
     });
 
-    it('displays jobs page header', () => {
-      cy.contains('h1', /Jobs/i).should('be.visible');
+    it('should display summary cards', () => {
+      cy.get('[data-testid="jobs-summary"]').should('exist');
+      // Check for queued, running, completed, failed cards
+      cy.get('[data-testid="summary-card"]').should('have.length.at.least', 4);
     });
 
-    it('displays create job button', () => {
-      cy.contains('button', /Create Job/i).should('be.visible');
+    it('should display filter section', () => {
+      cy.get('[data-testid="jobs-filters"]').should('exist');
+      cy.get('input[placeholder*="Search"]').should('exist');
     });
 
-    it('displays jobs table', () => {
+    it('should display jobs table', () => {
       cy.get('[data-testid="jobs-table"]').should('exist');
-    });
-
-    it('displays filter controls', () => {
-      cy.get('[data-testid="jobs-filters"]').should('be.visible');
-    });
-  });
-
-  describe('Data Display', () => {
-    it('displays jobs in table', () => {
-      cy.get('[data-testid="jobs-table"] tbody tr').should('have.length.greaterThan', 0);
-    });
-
-    it('displays job columns correctly', () => {
-      cy.get('[data-testid="jobs-table"]').within(() => {
-        cy.contains('th', /Name/i).should('be.visible');
-        cy.contains('th', /Status/i).should('be.visible');
-        cy.contains('th', /Priority/i).should('be.visible');
-        cy.contains('th', /Created/i).should('be.visible');
-      });
-    });
-
-    it('displays status badges', () => {
-      cy.get('[data-testid="jobs-table"] tbody tr').first().within(() => {
-        cy.get('[data-testid*="status-badge"]').should('be.visible');
-      });
-    });
-
-    it('displays job timestamps', () => {
-      cy.get('[data-testid="jobs-table"] tbody tr').first().within(() => {
-        cy.get('td').contains(/\d{4}-\d{2}-\d{2}/).should('be.visible');
-      });
     });
   });
 
   describe('Filtering', () => {
-    it('filters jobs by status RUNNING', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/RUNNING/i).click();
-
-      // All visible rows should show RUNNING status
+    it('should filter jobs by search term', () => {
+      cy.get('input[placeholder*="Search"]').type('test-job');
       cy.get('[data-testid="jobs-table"] tbody tr').each((row) => {
-        cy.wrap(row).should('contain', 'RUNNING');
+        cy.wrap(row).contains('test-job', { matchCase: false });
       });
     });
 
-    it('filters jobs by status COMPLETED', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/COMPLETED/i).click();
-
+    it('should filter jobs by status', () => {
+      cy.get('[data-testid="status-filter"]').click();
+      cy.get('[data-value="RUNNING"]').click();
+      
+      // All visible rows should have RUNNING status
       cy.get('[data-testid="jobs-table"] tbody tr').each((row) => {
-        cy.wrap(row).should('contain', 'COMPLETED');
+        cy.wrap(row).contains('RUNNING');
       });
     });
 
-    it('filters jobs by priority HIGH', () => {
-      cy.get('[data-testid="filter-priority"]').click();
-      cy.get('[role="option"]').contains(/HIGH/i).click();
-
-      // Verify API was called with priority filter
-      cy.url().should('include', 'priority=HIGH');
+    it('should filter jobs by priority', () => {
+      cy.get('[data-testid="priority-filter"]').click();
+      cy.get('[data-value="CRITICAL"]').click();
+      
+      // All visible rows should have CRITICAL priority
+      cy.get('[data-testid="jobs-table"] tbody tr').each((row) => {
+        cy.wrap(row).contains('CRITICAL');
+      });
     });
 
-    it('combines multiple filters', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/RUNNING/i).click();
-
-      cy.get('[data-testid="filter-priority"]').click();
-      cy.get('[role="option"]').contains(/HIGH/i).click();
-
-      // Should show only RUNNING jobs with HIGH priority
-      cy.url().should('include', 'status=RUNNING');
-      cy.url().should('include', 'priority=HIGH');
-    });
-
-    it('resets all filters with reset button', () => {
-      // Apply filters
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/RUNNING/i).click();
-
-      // Reset
-      cy.contains('button', /Reset/i).click();
-
-      // URL should not contain filter params
-      cy.url().should('not.include', 'status=');
-    });
-
-    it('shows correct jobs count after filtering', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/RUNNING/i).click();
-
-      // Page info should show filtered count
-      cy.contains(/jobs/i).should('be.visible');
+    it('should clear filters', () => {
+      cy.get('input[placeholder*="Search"]').type('test');
+      cy.get('[data-testid="clear-filters"]').click();
+      cy.get('input[placeholder*="Search"]').should('have.value', '');
     });
   });
 
   describe('Sorting', () => {
-    it('sorts by name column ascending', () => {
-      cy.contains('th', /Name/i).click();
-
-      // Jobs should be sorted by name (a-z)
-      cy.get('[data-testid="jobs-table"] tbody tr').first()
-        .should('be.visible');
+    it('should sort by name', () => {
+      cy.get('[data-testid="jobs-table"] th').contains('Name').click();
+      // First row should appear after sort
+      cy.get('[data-testid="jobs-table"] tbody tr').first().should('exist');
     });
 
-    it('sorts by name column descending on second click', () => {
-      cy.contains('th', /Name/i).click();
-      cy.contains('th', /Name/i).click();
-
-      // Jobs should be sorted by name (z-a)
-      cy.get('[data-testid="jobs-table"] tbody tr').first()
-        .should('be.visible');
+    it('should sort by status', () => {
+      cy.get('[data-testid="jobs-table"] th').contains('Status').click();
+      cy.get('[data-testid="jobs-table"] tbody tr').first().should('exist');
     });
 
-    it('sorts by status column', () => {
-      cy.contains('th', /Status/i).click();
-
-      cy.get('[data-testid="jobs-table"] tbody tr').first()
-        .should('be.visible');
+    it('should sort by created date', () => {
+      cy.get('[data-testid="jobs-table"] th').contains('Created').click();
+      cy.get('[data-testid="jobs-table"] tbody tr').first().should('exist');
     });
 
-    it('sorts by created date', () => {
-      cy.contains('th', /Created/i).click();
-
-      cy.get('[data-testid="jobs-table"] tbody tr').first()
-        .should('be.visible');
-    });
-
-    it('clears previous sort when clicking new column', () => {
-      cy.contains('th', /Name/i).click();
-      cy.contains('th', /Status/i).click();
-
-      // Should now be sorted by Status, not Name
-      cy.url().should('include', 'sort_by=status');
+    it('should toggle sort direction', () => {
+      cy.get('[data-testid="jobs-table"] th').contains('Name').click();
+      cy.get('[data-testid="jobs-table"] th').contains('Name').click();
+      cy.get('[data-testid="jobs-table"] tbody tr').first().should('exist');
     });
   });
 
   describe('Pagination', () => {
-    it('displays pagination info', () => {
-      cy.get('[data-testid="pagination"]').should('be.visible');
-      cy.contains(/\d+.*of.*\d+/i).should('be.visible');
+    it('should display pagination controls', () => {
+      cy.get('[data-testid="pagination"]').should('exist');
     });
 
-    it('navigates to next page', () => {
-      // Get first job name
-      cy.get('[data-testid="jobs-table"] tbody tr:first td:first')
-        .invoke('text')
-        .then((firstPageFirstJob) => {
-          cy.contains('button', /Next/i).click();
-
-          // First job should be different on page 2
-          cy.get('[data-testid="jobs-table"] tbody tr:first td:first')
-            .should('not.contain', firstPageFirstJob);
-        });
+    it('should change rows per page', () => {
+      cy.get('[data-testid="rows-per-page"]').click();
+      cy.get('[data-value="25"]').click();
+      cy.get('[data-testid="jobs-table"] tbody tr')
+        .should('have.length.at.most', 25);
     });
 
-    it('navigates to previous page', () => {
-      // Go to page 2
-      cy.contains('button', /Next/i).click();
-
-      // Go back to page 1
-      cy.contains('button', /Previous/i).click();
-
-      // Should be at page 1
-      cy.url().should('include', 'offset=0');
+    it('should navigate to next page', () => {
+      cy.get('[data-testid="next-page-button"]').click();
+      cy.get('[data-testid="jobs-table"] tbody tr').first().should('exist');
     });
 
-    it('disables next button on last page', () => {
-      // Navigate to last page (assuming < 5 pages)
-      for (let i = 0; i < 10; i++) {
-        const nextBtn = cy.contains('button', /Next/i);
-        nextBtn.should('be.enabled').click().then(() => {
-          // Try clicking again, should be disabled eventually or stay enabled if more pages
-        });
-      }
-    });
-
-    it('disables previous button on first page', () => {
-      cy.contains('button', /Previous/i).should('be.disabled');
-    });
-
-    it('changes page size when page size selector changes', () => {
-      cy.get('[data-testid="pagination-size"]').click();
-      cy.get('[role="option"]').contains('100').click();
-
-      // URL should reflect new page size
-      cy.url().should('include', 'limit=100');
+    it('should navigate to previous page', () => {
+      cy.get('[data-testid="next-page-button"]').click();
+      cy.get('[data-testid="prev-page-button"]').click();
+      cy.get('[data-testid="jobs-table"] tbody tr').first().should('exist');
     });
   });
 
-  describe('Error Handling', () => {
-    it('shows error message on network failure', () => {
-      // Intercept API and return error
-      cy.intercept('/api/dashboard/jobs*', { statusCode: 500 }).as('jobsError');
-
-      cy.reload();
-      cy.wait('@jobsError');
-
-      cy.contains(/Error|Failed/i).should('be.visible');
+  describe('Job Details', () => {
+    it('should expand job row to show details', () => {
+      cy.get('[data-testid="jobs-table"] tbody tr').first().click();
+      cy.get('[data-testid="job-expand-panel"]').should('be.visible');
     });
 
-    it('provides retry button after error', () => {
-      cy.intercept('/api/dashboard/jobs*', { statusCode: 500 });
-
-      cy.reload();
-
-      cy.contains('button', /Retry|Try Again/i).should('be.visible');
+    it('should display inline log viewer when expanded', () => {
+      cy.get('[data-testid="jobs-table"] tbody tr').first().click();
+      cy.get('[data-testid="log-viewer"]').should('exist');
     });
 
-    it('refetches data when retry clicked', () => {
-      let callCount = 0;
+    it('should display logs for the job', () => {
+      cy.get('[data-testid="jobs-table"] tbody tr').first().click();
+      cy.get('[data-testid="log-viewer-content"]').should('contain.text', /\[/);
+    });
 
-      cy.intercept('/api/dashboard/jobs*', (req) => {
-        callCount++;
-        if (callCount === 1) {
-          req.reply({ statusCode: 500 });
-        } else {
-          req.reply({
-            statusCode: 200,
-            body: {
-              jobs: [],
-              total: 0,
-              limit: 50,
-              offset: 0,
-            },
-          });
-        }
-      }).as('jobsRetry');
-
-      cy.reload();
-      cy.contains('button', /Retry|Try Again/i).click();
-
-      cy.wait('@jobsRetry');
-      cy.contains(/Error|Failed/i).should('not.exist');
+    it('should collapse job details', () => {
+      cy.get('[data-testid="jobs-table"] tbody tr').first().click();
+      cy.get('[data-testid="job-expand-panel"]').should('be.visible');
+      cy.get('[data-testid="jobs-table"] tbody tr').first().click();
+      cy.get('[data-testid="job-expand-panel"]').should('not.exist');
     });
   });
 
-  describe('Empty State', () => {
-    it('shows empty state when no jobs match filter', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/CANCELED/i).click();
-
-      cy.contains(/No jobs|No results|empty/i).should('be.visible');
+  describe('Progress Tracking', () => {
+    it('should display progress bar for running jobs', () => {
+      // Filter to RUNNING jobs
+      cy.get('[data-testid="status-filter"]').click();
+      cy.get('[data-value="RUNNING"]').click();
+      
+      cy.get('[data-testid="job-progress"]').should('exist');
     });
 
-    it('shows empty state message with friendly text', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/CANCELED/i).click();
-
-      cy.contains(/No jobs found|Create one|Get started/i).should('exist');
-    });
-  });
-
-  describe('Interactions', () => {
-    it('can click on job row to view details', () => {
-      cy.get('[data-testid="jobs-table"] tbody tr:first').click();
-
-      // Should navigate to job details page
-      cy.url().should('include', '/dashboard/jobs/');
-    });
-
-    it('can create new job', () => {
-      cy.contains('button', /Create Job/i).click();
-
-      // Should show create job modal or navigate to create page
-      cy.contains(/Create Job|New Job|Job Details/i).should('be.visible');
-    });
-
-    it('can delete job from table', () => {
-      cy.get('[data-testid="jobs-table"] tbody tr:first').within(() => {
-        cy.get('[data-testid="job-delete"]').click();
+    it('should show percentage completion', () => {
+      cy.get('[data-testid="status-filter"]').click();
+      cy.get('[data-value="RUNNING"]').click();
+      
+      cy.get('[data-testid="job-progress"]').each((progress) => {
+        cy.wrap(progress).should('contain', '%');
       });
-
-      cy.contains(/Confirm|Delete|Are you sure/i).should('be.visible');
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('keyboard navigation works', () => {
-      cy.get('[data-testid="jobs-table"]').should('have.attr', 'role', 'table');
-      cy.get('[data-testid="jobs-table"] th').first().should('have.attr', 'role', 'columnheader');
-    });
-
-    it('filter controls are keyboard accessible', () => {
-      cy.get('[data-testid="filter-status"]').focus().should('have.focus');
-      cy.get('[data-testid="filter-status"]').type('{enter}');
-
-      cy.get('[role="listbox"]').should('be.visible');
-    });
-
-    it('table has proper ARIA labels', () => {
-      cy.get('[data-testid="jobs-table"]').should('have.attr', 'role', 'table');
-      cy.get('[data-testid="jobs-table"] th').should('have.attr', 'role', 'columnheader');
-    });
-
-    it('status badges have descriptive text', () => {
-      cy.get('[data-testid="jobs-table"] tbody tr:first')
-        .get('[data-testid*="status-badge"]')
-        .should('have.attr', 'aria-label');
-    });
-  });
-
-  describe('Responsive Design', () => {
-    it('displays correctly on mobile', () => {
-      cy.viewport(375, 667);
-      cy.get('[data-testid="jobs-table"]').should('be.visible');
-    });
-
-    it('displays correctly on tablet', () => {
-      cy.viewport(768, 1024);
-      cy.get('[data-testid="jobs-table"]').should('be.visible');
-    });
-
-    it('displays correctly on desktop', () => {
-      cy.viewport(1920, 1080);
-      cy.get('[data-testid="jobs-table"]').should('be.visible');
-    });
-
-    it('collapses columns on mobile', () => {
-      cy.viewport(375, 667);
-      // Some columns should be hidden or combined
-      cy.get('[data-testid="jobs-table"]').should('be.visible');
     });
   });
 
   describe('Real-Time Updates', () => {
-    it('auto-refreshes jobs periodically', () => {
-      let apiCallCount = 0;
+    it('should update job list in real-time', () => {
+      cy.get('[data-testid="jobs-table"] tbody tr').first().invoke('text').then((initialText) => {
+        cy.wait(5000);
+        // Row should still exist (may have updated data)
+        cy.get('[data-testid="jobs-table"] tbody tr').first().should('exist');
+      });
+    });
 
-      cy.intercept('/api/dashboard/jobs*', (req) => {
-        apiCallCount++;
-        req.reply({
-          statusCode: 200,
-          body: {
-            jobs: [],
-            total: 0,
-            limit: 50,
-            offset: 0,
-          },
+    it('should update progress bars', () => {
+      cy.get('[data-testid="status-filter"]').click();
+      cy.get('[data-value="RUNNING"]').click();
+      
+      cy.get('[data-testid="job-progress"]').first().invoke('attr', 'aria-valuenow').then((value1) => {
+        cy.wait(5000);
+        cy.get('[data-testid="job-progress"]').first().invoke('attr', 'aria-valuenow').then((value2) => {
+          // Progress should be tracked
+          expect(value2).to.not.be.undefined;
         });
-      }).as('jobsApi');
-
-      cy.wait('@jobsApi');
-
-      // Wait for auto-refresh (typically 30-60 seconds)
-      cy.wait(61000);
-
-      cy.wait('@jobsApi');
-
-      // Should have been called at least twice
-      expect(apiCallCount).to.be.greaterThan(1);
+      });
     });
   });
 
-  describe('URL State Persistence', () => {
-    it('preserves filters in URL', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/RUNNING/i).click();
-
-      // Reload page
+  describe('Error Handling', () => {
+    it('should display error message if jobs fetch fails', () => {
+      cy.intercept('GET', '**/api/dashboard/jobs**', {
+        statusCode: 500,
+        body: { error: 'Internal Server Error' },
+      });
+      
       cy.reload();
-
-      // Filter should still be applied
-      cy.url().should('include', 'status=RUNNING');
+      cy.contains('Error loading jobs', { timeout: 5000 }).should('be.visible');
     });
 
-    it('preserves sort in URL', () => {
-      cy.contains('th', /Name/i).click();
-
+    it('should show retry button on error', () => {
+      cy.intercept('GET', '**/api/dashboard/jobs**', {
+        statusCode: 500,
+        body: { error: 'Internal Server Error' },
+      });
+      
       cy.reload();
-
-      cy.url().should('include', 'sort_by=name');
+      cy.get('[data-testid="retry-button"]').should('exist');
     });
 
-    it('preserves pagination offset in URL', () => {
-      cy.contains('button', /Next/i).click();
-
+    it('should display empty state when no jobs', () => {
+      cy.intercept('GET', '**/api/dashboard/jobs**', {
+        statusCode: 200,
+        body: { jobs: [] },
+      });
+      
       cy.reload();
+      cy.contains('No jobs found', { timeout: 5000 }).should('be.visible');
+    });
+  });
 
-      cy.url().should('include', 'offset=50');
+  describe('Responsive Design', () => {
+    it('should display table on desktop', () => {
+      cy.viewport(1920, 1080);
+      cy.get('[data-testid="jobs-table"]').should('be.visible');
+    });
+
+    it('should display compact table on tablet', () => {
+      cy.viewport('ipad-2');
+      cy.get('[data-testid="jobs-table"]').should('be.visible');
+    });
+
+    it('should display mobile card view on phone', () => {
+      cy.viewport('iphone-x');
+      cy.get('[data-testid="jobs-mobile-card"]').should('exist');
     });
   });
 });

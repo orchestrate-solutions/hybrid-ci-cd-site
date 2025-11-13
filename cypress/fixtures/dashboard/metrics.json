@@ -1,0 +1,27 @@
+{
+  "metrics": {
+    "jobs_queued": 5,
+    "jobs_running": 3,
+    "jobs_completed": 42,
+    "agents_active": 8,
+    "uptime_hours": 720
+  },
+  "recent_jobs": [
+    {
+      "id": "job-001",
+      "name": "build-api",
+      "status": "RUNNING",
+      "priority": "HIGH",
+      "progress": 65,
+      "created_at": "2025-11-13T08:00:00Z"
+    },
+    {
+      "id": "job-002",
+      "name": "test-frontend",
+      "status": "COMPLETED",
+      "priority": "NORMAL",
+      "created_at": "2025-11-13T07:30:00Z",
+      "completed_at": "2025-11-13T08:05:00Z"
+    }
+  ]
+}

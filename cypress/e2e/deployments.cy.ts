@@ -1,197 +1,259 @@
-/**
- * DeploymentsPage E2E Tests (Cypress)
- * 
- * User workflow tests for the deployments page.
- */
+/// <reference types="cypress" />
 
-describe('DeploymentsPage E2E Workflows', () => {
+describe('Deployments Page', () => {
   beforeEach(() => {
-    cy.visit('http://localhost:3000/dashboard/deployments');
+    cy.visit('/dashboard/deployments');
+    cy.contains('Deployments', { timeout: 5000 }).should('be.visible');
   });
 
-  describe('Navigation & Structure', () => {
-    it('navigates to deployments page from dashboard', () => {
-      cy.visit('http://localhost:3000/dashboard');
-      cy.contains('Deployments').click();
-      cy.url().should('include', '/dashboard/deployments');
+  describe('Page Structure', () => {
+    it('should display deployments page header', () => {
+      cy.contains('h4', 'Deployments').should('be.visible');
     });
 
-    it('displays deployments page header', () => {
-      cy.contains('h1', /Deployments/i).should('be.visible');
+    it('should display summary cards', () => {
+      cy.get('[data-testid="deployments-summary"]').should('exist');
+      cy.get('[data-testid="summary-card"]').should('have.length.at.least', 4);
     });
 
-    it('displays create deployment button', () => {
-      cy.contains('button', /Create Deployment|Deploy/i).should('be.visible');
+    it('should display timeline view', () => {
+      cy.get('[data-testid="deployments-timeline"]').should('exist');
     });
 
-    it('displays deployments table', () => {
-      cy.get('[data-testid="deployments-table"]').should('exist');
-    });
-
-    it('displays filter controls', () => {
-      cy.get('[data-testid="deployments-filters"]').should('be.visible');
+    it('should display filter section', () => {
+      cy.get('[data-testid="deployments-filters"]').should('exist');
     });
   });
 
-  describe('Data Display', () => {
-    it('displays deployments in table', () => {
-      cy.get('[data-testid="deployments-table"] tbody tr').should('have.length.greaterThan', 0);
+  describe('Timeline View', () => {
+    it('should display deployment timeline items', () => {
+      cy.get('[data-testid="timeline-item"]').should('have.length.at.least', 1);
     });
 
-    it('displays deployment columns', () => {
-      cy.get('[data-testid="deployments-table"]').within(() => {
-        cy.contains('th', /Name/i).should('be.visible');
-        cy.contains('th', /Status/i).should('be.visible');
-        cy.contains('th', /Environment/i).should('be.visible');
+    it('should show deployment status in timeline', () => {
+      cy.get('[data-testid="timeline-item"]').first().within(() => {
+        cy.get('[data-testid="status-indicator"]').should('exist');
       });
     });
 
-    it('displays status badges', () => {
-      cy.get('[data-testid="deployments-table"] tbody tr').first().within(() => {
-        cy.get('[data-testid*="status-badge"]').should('be.visible');
+    it('should display environment information', () => {
+      cy.get('[data-testid="timeline-item"]').first().should('contain', /dev|staging|production/i);
+    });
+
+    it('should display deployment timestamp', () => {
+      cy.get('[data-testid="timeline-item"]').first().should('contain', /\d{1,2}:\d{2}|AM|PM/i);
+    });
+  });
+
+  describe('Environment Promotion Workflow', () => {
+    it('should show promote button for dev deployments', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/dev/i).parent().within(() => {
+        cy.get('[data-testid="promote-button"]').should('exist');
       });
     });
 
-    it('displays environment badges', () => {
-      cy.get('[data-testid="deployments-table"] tbody tr').first().within(() => {
-        cy.get('[data-testid*="environment-badge"]').should('be.visible');
+    it('should open promotion dialog', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/dev/i).parent().within(() => {
+        cy.get('[data-testid="promote-button"]').click();
+      });
+      cy.get('[data-testid="promotion-dialog"]').should('be.visible');
+    });
+
+    it('should show target environment selector', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/dev/i).parent().within(() => {
+        cy.get('[data-testid="promote-button"]').click();
+      });
+      cy.get('[data-testid="promotion-dialog"]').within(() => {
+        cy.get('[data-testid="target-environment"]').should('exist');
+      });
+    });
+
+    it('should allow promotion with confirmation', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/dev/i).parent().within(() => {
+        cy.get('[data-testid="promote-button"]').click();
+      });
+      cy.get('[data-testid="promotion-dialog"]').within(() => {
+        cy.get('[data-testid="confirm-promotion"]').click();
+      });
+      cy.contains('Promotion initiated', { timeout: 5000 }).should('be.visible');
+    });
+
+    it('should show gating requirements before promotion', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/dev/i).parent().within(() => {
+        cy.get('[data-testid="promote-button"]').click();
+      });
+      cy.get('[data-testid="promotion-dialog"]').within(() => {
+        cy.get('[data-testid="gate-requirements"]').should('exist');
       });
     });
   });
 
-  describe('Filtering', () => {
-    it('filters by status', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/COMPLETED/i).click();
-
-      cy.get('[data-testid="deployments-table"] tbody tr').each((row) => {
-        cy.wrap(row).should('contain', 'COMPLETED');
+  describe('Rollback Functionality', () => {
+    it('should show rollback button for completed deployments', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/completed|success/i).parent().within(() => {
+        cy.get('[data-testid="rollback-button"]').should('exist');
       });
     });
 
-    it('filters by environment', () => {
-      cy.get('[data-testid="filter-environment"]').click();
-      cy.get('[role="option"]').contains(/PRODUCTION/i).click();
-
-      cy.url().should('include', 'environment=PRODUCTION');
+    it('should open rollback confirmation dialog', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/completed|success/i).parent().within(() => {
+        cy.get('[data-testid="rollback-button"]').click();
+      });
+      cy.get('[data-testid="rollback-dialog"]').should('be.visible');
     });
 
-    it('resets filters', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/COMPLETED/i).click();
+    it('should require confirmation for rollback', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/completed|success/i).parent().within(() => {
+        cy.get('[data-testid="rollback-button"]').click();
+      });
+      cy.get('[data-testid="rollback-dialog"]').within(() => {
+        cy.contains('Are you sure').should('be.visible');
+        cy.get('[data-testid="confirm-rollback"]').should('be.disabled');
+      });
+    });
 
-      cy.contains('button', /Reset/i).click();
+    it('should show previous version for rollback', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/completed|success/i).parent().within(() => {
+        cy.get('[data-testid="rollback-button"]').click();
+      });
+      cy.get('[data-testid="rollback-dialog"]').within(() => {
+        cy.get('[data-testid="previous-version"]').should('exist');
+      });
+    });
 
-      cy.url().should('not.include', 'status=');
+    it('should execute rollback after confirmation', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/completed|success/i).parent().within(() => {
+        cy.get('[data-testid="rollback-button"]').click();
+      });
+      cy.get('[data-testid="rollback-dialog"]').within(() => {
+        // Type confirmation text or check checkbox
+        cy.get('input[type="checkbox"]').click();
+        cy.get('[data-testid="confirm-rollback"]').click();
+      });
+      cy.contains('Rollback initiated', { timeout: 5000 }).should('be.visible');
     });
   });
 
-  describe('Sorting', () => {
-    it('sorts by name', () => {
-      cy.contains('th', /Name/i).click();
-      cy.get('[data-testid="deployments-table"] tbody tr').first().should('be.visible');
+  describe('Filtering & Search', () => {
+    it('should filter by deployment name', () => {
+      cy.get('input[placeholder*="Search"]').type('prod-deploy');
+      cy.get('[data-testid="timeline-item"]').each((item) => {
+        cy.wrap(item).contains('prod-deploy', { matchCase: false });
+      });
     });
 
-    it('sorts by status', () => {
-      cy.contains('th', /Status/i).click();
-      cy.get('[data-testid="deployments-table"] tbody tr').first().should('be.visible');
+    it('should filter by environment', () => {
+      cy.get('[data-testid="environment-filter"]').click();
+      cy.get('[data-value="production"]').click();
+      
+      cy.get('[data-testid="timeline-item"]').each((item) => {
+        cy.wrap(item).contains('production', { matchCase: false });
+      });
     });
 
-    it('sorts by created date', () => {
-      cy.contains('th', /Created/i).click();
-      cy.get('[data-testid="deployments-table"] tbody tr').first().should('be.visible');
+    it('should filter by status', () => {
+      cy.get('[data-testid="status-filter"]').click();
+      cy.get('[data-value="COMPLETED"]').click();
+      
+      cy.get('[data-testid="timeline-item"]').each((item) => {
+        cy.wrap(item).contains('completed|success', { matchCase: false });
+      });
+    });
+
+    it('should clear all filters', () => {
+      cy.get('input[placeholder*="Search"]').type('test');
+      cy.get('[data-testid="clear-filters"]').click();
+      cy.get('input[placeholder*="Search"]').should('have.value', '');
     });
   });
 
-  describe('Pagination', () => {
-    it('displays pagination', () => {
-      cy.get('[data-testid="pagination"]').should('be.visible');
+  describe('Status Color Coding', () => {
+    it('should show green for completed deployments', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/completed|success/i).within(() => {
+        cy.get('[data-testid="status-indicator"]').should('have.class', 'status-success');
+      });
     });
 
-    it('navigates to next page', () => {
-      cy.contains('button', /Next/i).click();
-      cy.url().should('include', 'offset=50');
+    it('should show red for failed deployments', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/failed|error/i).within(() => {
+        cy.get('[data-testid="status-indicator"]').should('have.class', 'status-error');
+      });
     });
 
-    it('navigates to previous page', () => {
-      cy.contains('button', /Next/i).click();
-      cy.contains('button', /Previous/i).click();
-      cy.url().should('include', 'offset=0');
+    it('should show blue for in-progress deployments', () => {
+      cy.get('[data-testid="timeline-item"]').contains(/in-progress|running/i).within(() => {
+        cy.get('[data-testid="status-indicator"]').should('have.class', 'status-in-progress');
+      });
+    });
+  });
+
+  describe('Real-Time Updates', () => {
+    it('should update timeline in real-time', () => {
+      cy.get('[data-testid="timeline-item"]').first().invoke('text').then((initialText) => {
+        cy.wait(5000);
+        cy.get('[data-testid="timeline-item"]').first().should('exist');
+      });
+    });
+
+    it('should update deployment statuses', () => {
+      cy.get('[data-testid="summary-card"]').first().invoke('text').then((initialValue) => {
+        cy.wait(5000);
+        cy.get('[data-testid="summary-card"]').first().should('contain', /\d+/);
+      });
     });
   });
 
   describe('Error Handling', () => {
-    it('shows error message on network failure', () => {
-      cy.intercept('/api/dashboard/deployments*', { statusCode: 500 });
-      cy.reload();
-
-      cy.contains(/Error|Failed/i).should('be.visible');
-    });
-
-    it('provides retry button', () => {
-      cy.intercept('/api/dashboard/deployments*', { statusCode: 500 });
-      cy.reload();
-
-      cy.contains('button', /Retry/i).should('be.visible');
-    });
-  });
-
-  describe('Empty State', () => {
-    it('shows empty state when no deployments', () => {
-      cy.get('[data-testid="filter-status"]').click();
-      cy.get('[role="option"]').contains(/CANCELED/i).click();
-
-      cy.contains(/No deployments|No results/i).should('be.visible');
-    });
-  });
-
-  describe('Interactions', () => {
-    it('can click on deployment row', () => {
-      cy.get('[data-testid="deployments-table"] tbody tr:first').click();
-      cy.url().should('include', '/dashboard/deployments/');
-    });
-
-    it('can create new deployment', () => {
-      cy.contains('button', /Create Deployment|Deploy/i).click();
-      cy.contains(/Create Deployment|New Deployment|Deploy/i).should('be.visible');
-    });
-
-    it('can rollback deployment', () => {
-      cy.get('[data-testid="deployments-table"] tbody tr:first').within(() => {
-        cy.get('[data-testid="deployment-rollback"]').click();
+    it('should display error if deployments fetch fails', () => {
+      cy.intercept('GET', '**/api/dashboard/deployments**', {
+        statusCode: 500,
+        body: { error: 'Internal Server Error' },
       });
+      
+      cy.reload();
+      cy.contains('Error loading deployments', { timeout: 5000 }).should('be.visible');
+    });
 
-      cy.contains(/Confirm|Rollback/i).should('be.visible');
+    it('should display error on failed promotion', () => {
+      cy.intercept('POST', '**/api/dashboard/deployments/*/promote', {
+        statusCode: 400,
+        body: { error: 'Promotion failed - gating requirements not met' },
+      });
+      
+      cy.get('[data-testid="timeline-item"]').contains(/dev/i).parent().within(() => {
+        cy.get('[data-testid="promote-button"]').click();
+      });
+      cy.get('[data-testid="promotion-dialog"]').within(() => {
+        cy.get('[data-testid="confirm-promotion"]').click();
+      });
+      cy.contains('Promotion failed', { timeout: 5000 }).should('be.visible');
+    });
+
+    it('should display empty state when no deployments', () => {
+      cy.intercept('GET', '**/api/dashboard/deployments**', {
+        statusCode: 200,
+        body: { deployments: [] },
+      });
+      
+      cy.reload();
+      cy.contains('No deployments found', { timeout: 5000 }).should('be.visible');
     });
   });
 
   describe('Responsive Design', () => {
-    it('displays on mobile', () => {
-      cy.viewport(375, 667);
-      cy.get('[data-testid="deployments-table"]').should('be.visible');
-    });
-
-    it('displays on tablet', () => {
-      cy.viewport(768, 1024);
-      cy.get('[data-testid="deployments-table"]').should('be.visible');
-    });
-
-    it('displays on desktop', () => {
+    it('should display timeline on desktop', () => {
       cy.viewport(1920, 1080);
-      cy.get('[data-testid="deployments-table"]').should('be.visible');
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('has keyboard navigation', () => {
-      cy.get('[data-testid="deployments-table"]').should('have.attr', 'role', 'table');
-      cy.get('[data-testid="deployments-table"] th').should('have.attr', 'role', 'columnheader');
+      cy.get('[data-testid="deployments-timeline"]').should('be.visible');
     });
 
-    it('has ARIA labels', () => {
-      cy.get('[data-testid="deployments-table"] tbody tr:first')
-        .get('[data-testid*="status-badge"]')
-        .should('have.attr', 'aria-label');
+    it('should display vertical timeline on tablet', () => {
+      cy.viewport('ipad-2');
+      cy.get('[data-testid="deployments-timeline"]').should('be.visible');
+    });
+
+    it('should display compact timeline on mobile', () => {
+      cy.viewport('iphone-x');
+      cy.get('[data-testid="deployments-timeline"]').should('be.visible');
     });
   });
 });

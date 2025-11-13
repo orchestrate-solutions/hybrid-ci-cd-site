@@ -1,0 +1,70 @@
+{
+  "pools": [
+    {
+      "id": "pool-prod",
+      "name": "Production Pool",
+      "status": "active",
+      "health": 95,
+      "active_count": 5,
+      "total_capacity": 5
+    },
+    {
+      "id": "pool-staging",
+      "name": "Staging Pool",
+      "status": "active",
+      "health": 88,
+      "active_count": 3,
+      "total_capacity": 4
+    },
+    {
+      "id": "pool-dev",
+      "name": "Development Pool",
+      "status": "active",
+      "health": 72,
+      "active_count": 2,
+      "total_capacity": 3
+    }
+  ],
+  "agents": [
+    {
+      "id": "agent-prod-001",
+      "pool_id": "pool-prod",
+      "name": "worker-prod-1",
+      "status": "active",
+      "heartbeat": "2025-11-13T08:15:30Z",
+      "cpu_usage": 45,
+      "memory_usage": 62,
+      "disk_usage": 28
+    },
+    {
+      "id": "agent-prod-002",
+      "pool_id": "pool-prod",
+      "name": "worker-prod-2",
+      "status": "active",
+      "heartbeat": "2025-11-13T08:15:25Z",
+      "cpu_usage": 38,
+      "memory_usage": 58,
+      "disk_usage": 25
+    },
+    {
+      "id": "agent-staging-001",
+      "pool_id": "pool-staging",
+      "name": "worker-staging-1",
+      "status": "paused",
+      "heartbeat": "2025-11-13T08:10:00Z",
+      "cpu_usage": 0,
+      "memory_usage": 30,
+      "disk_usage": 22
+    },
+    {
+      "id": "agent-dev-001",
+      "pool_id": "pool-dev",
+      "name": "worker-dev-1",
+      "status": "active",
+      "heartbeat": "2025-11-13T08:15:20Z",
+      "cpu_usage": 12,
+      "memory_usage": 24,
+      "disk_usage": 18
+    }
+  ]
+}

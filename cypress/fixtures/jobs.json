@@ -1,0 +1,44 @@
+{
+  "jobs": [
+    {
+      "id": "job-001",
+      "name": "build-api-prod",
+      "status": "RUNNING",
+      "priority": "CRITICAL",
+      "progress": 72,
+      "created_at": "2025-11-13T08:00:00Z",
+      "updated_at": "2025-11-13T08:15:00Z"
+    },
+    {
+      "id": "job-002",
+      "name": "test-frontend",
+      "status": "COMPLETED",
+      "priority": "HIGH",
+      "created_at": "2025-11-13T07:30:00Z",
+      "completed_at": "2025-11-13T08:05:00Z"
+    },
+    {
+      "id": "job-003",
+      "name": "deploy-services",
+      "status": "QUEUED",
+      "priority": "HIGH",
+      "created_at": "2025-11-13T08:10:00Z"
+    },
+    {
+      "id": "job-004",
+      "name": "data-migration",
+      "status": "RUNNING",
+      "priority": "NORMAL",
+      "progress": 45,
+      "created_at": "2025-11-13T07:45:00Z"
+    },
+    {
+      "id": "job-005",
+      "name": "cleanup-logs",
+      "status": "FAILED",
+      "priority": "LOW",
+      "created_at": "2025-11-13T06:00:00Z",
+      "completed_at": "2025-11-13T06:15:00Z"
+    }
+  ]
+}
