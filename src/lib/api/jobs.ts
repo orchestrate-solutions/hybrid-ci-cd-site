@@ -4,6 +4,10 @@
  * Typed fetch wrapper for all jobs-related API endpoints.
  * Handles errors, timeouts, and response parsing.
  * Supports demo mode for offline development.
+ * 
+ * NOTE: Removed non-existent endpoints (deleteJob, retryJob, cancelJob, bulkCancelJobs, 
+ * bulkDeleteJobs, getJobStats, exportJobsToCSV) that were calling 404 endpoints.
+ * Job lifecycle is managed via queue API (claimJob, startJob, completeJob, failJob).
  */
 
 import {
@@ -14,13 +18,8 @@ import {
   CreateJobResponse,
   GetJobResponse,
   UpdateJobRequest,
-  DeleteJobResponse,
-  RetryJobResponse,
-  CancelJobResponse,
-  JobStats,
-  BulkJobsResponse,
 } from '@/lib/types/jobs';
-import { getDemoJobsResponse, getDemoJobs, getDemoJobLogs } from '@/lib/mocks/demo-data';
+import { getDemoJobsResponse, getDemoJobs } from '@/lib/mocks/demo-data';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -166,177 +165,44 @@ export async function updateJob(
 }
 
 /**
- * Delete a job
+ * DEPRECATED: Job lifecycle now managed via queue API
+ * Use: queueApi.failJob() instead to mark job as failed
+ * Or:  queueApi.requeueJob() to requeue a failed job
  */
-export async function deleteJob(jobId: string): Promise<DeleteJobResponse> {
-  const url = `${BASE_URL}/api/dashboard/jobs/${jobId}`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to delete job: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error(`deleteJob error for ${jobId}:`, error);
-    throw error;
-  }
-}
+// export async function deleteJob(jobId: string): Promise<DeleteJobResponse> { }
 
 /**
- * Retry a failed job
+ * DEPRECATED: Job lifecycle now managed via queue API
+ * Use: queueApi.completeJob() with success status instead
+ * Job completion happens when agent marks it COMPLETED in the queue
  */
-export async function retryJob(jobId: string): Promise<RetryJobResponse> {
-  const url = `${BASE_URL}/api/dashboard/jobs/${jobId}/retry`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to retry job: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error(`retryJob error for ${jobId}:`, error);
-    throw error;
-  }
-}
+// export async function retryJob(jobId: string): Promise<RetryJobResponse> { }
 
 /**
- * Cancel a job
+ * DEPRECATED: Job lifecycle now managed via queue API
+ * Use: queueApi.failJob() instead to mark job as failed
+ * Jobs are claimed by agents and executed via queue operations
  */
-export async function cancelJob(jobId: string): Promise<CancelJobResponse> {
-  const url = `${BASE_URL}/api/dashboard/jobs/${jobId}/cancel`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to cancel job: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error(`cancelJob error for ${jobId}:`, error);
-    throw error;
-  }
-}
+// export async function cancelJob(jobId: string): Promise<CancelJobResponse> { }
 
 /**
- * Get job statistics
+ * DEPRECATED: Job statistics are now aggregated from queue
+ * Use: queueApi.getQueueStats() instead for queue-based metrics
  */
-export async function getJobStats(): Promise<JobStats> {
-  const url = `${BASE_URL}/api/dashboard/jobs/stats`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to get job stats: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error('getJobStats error:', error);
-    throw error;
-  }
-}
+// export async function getJobStats(): Promise<JobStats> { }
 
 /**
- * Bulk delete jobs
+ * DEPRECATED: Bulk operations removed - use queue API for batch operations
+ * Individual jobs should be managed via queue claim/complete workflow
  */
-export async function bulkDeleteJobs(jobIds: string[]): Promise<BulkJobsResponse> {
-  const url = `${BASE_URL}/api/dashboard/jobs/bulk/delete`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ job_ids: jobIds }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to bulk delete jobs: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error('bulkDeleteJobs error:', error);
-    throw error;
-  }
-}
+// export async function bulkDeleteJobs(jobIds: string[]): Promise<BulkJobsResponse> { }
 
 /**
- * Bulk cancel jobs
+ * DEPRECATED: Bulk operations removed - use queue API for individual job management
  */
-export async function bulkCancelJobs(jobIds: string[]): Promise<BulkJobsResponse> {
-  const url = `${BASE_URL}/api/dashboard/jobs/bulk/cancel`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ job_ids: jobIds }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to bulk cancel jobs: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error('bulkCancelJobs error:', error);
-    throw error;
-  }
-}
+// export async function bulkCancelJobs(jobIds: string[]): Promise<BulkJobsResponse> { }
 
 /**
- * Export jobs to CSV
+ * DEPRECATED: CSV export removed - use dashboard query endpoints instead
  */
-export async function exportJobsToCSV(params: ListJobsParams = {}): Promise<Blob> {
-  const searchParams = new URLSearchParams();
-
-  if (params.status) searchParams.append('status', params.status);
-  if (params.priority) searchParams.append('priority', params.priority);
-  if (params.search) searchParams.append('search', params.search);
-
-  const url = `${BASE_URL}/api/dashboard/jobs/export/csv?${searchParams.toString()}`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'text/csv' },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to export jobs: ${res.status}`);
-    }
-
-    const blob = await res.blob();
-    return blob;
-  } catch (error) {
-    console.error('exportJobsToCSV error:', error);
-    throw error;
-  }
-}
+// export async function exportJobsToCSV(params: ListJobsParams = {}): Promise<Blob> { }
