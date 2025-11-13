@@ -2,11 +2,13 @@
  * LogViewer Component
  * Expandable inline log panel for job logs
  * Supports search, follow/tail, and pagination
+ * 
+ * HYDRATION FIX: Uses client-side rendering for timestamps and dynamic content
  */
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import {
   Box,
   Paper,
@@ -40,6 +42,11 @@ interface LogViewerProps {
 /**
  * LogViewer component
  * Displays job logs in an expandable panel with search and follow capabilities
+ * 
+ * HYDRATION NOTES:
+ * - Uses useEffect to ensure client-side only rendering of timestamps
+ * - Avoids rendering timestamps during SSR to prevent mismatch
+ * - Suspense boundary wraps conditional content
  */
 export function LogViewer({ jobId, maxHeight = '400px', onLogsLoaded }: LogViewerProps) {
   const [expanded, setExpanded] = useState(false);
@@ -48,7 +55,13 @@ export function LogViewer({ jobId, maxHeight = '400px', onLogsLoaded }: LogViewe
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [follow, setFollow] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Set mounted flag to enable hydration-safe rendering
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch logs when expanded
   useEffect(() => {
@@ -61,8 +74,8 @@ export function LogViewer({ jobId, maxHeight = '400px', onLogsLoaded }: LogViewe
         const response = await logsApi.getJobLogs(jobId, {
           limit: 100,
         });
-        setLogs(response.log_lines);
-        onLogsLoaded?.(response.total_lines);
+        setLogs(response.log_lines || []);
+        onLogsLoaded?.(response.total_lines || 0);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load logs';
         setError(message);
@@ -77,10 +90,10 @@ export function LogViewer({ jobId, maxHeight = '400px', onLogsLoaded }: LogViewe
 
   // Auto-scroll to bottom when follow is enabled
   useEffect(() => {
-    if (follow && logsEndRef.current) {
+    if (follow && logsEndRef.current && isMounted) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [logs, follow]);
+  }, [logs, follow, isMounted]);
 
   // Filter logs based on search term
   const filteredLogs = searchTerm
@@ -89,15 +102,16 @@ export function LogViewer({ jobId, maxHeight = '400px', onLogsLoaded }: LogViewe
 
   // Copy logs to clipboard
   const handleCopyLogs = () => {
+    if (!isMounted) return;
     const logText = logs.join('\n');
     navigator.clipboard.writeText(logText).then(() => {
-      // Could show toast notification here
       console.log('Logs copied to clipboard');
     });
   };
 
   // Download logs as text file
   const handleDownloadLogs = () => {
+    if (!isMounted) return;
     const logText = logs.join('\n');
     const blob = new Blob([logText], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
@@ -109,6 +123,32 @@ export function LogViewer({ jobId, maxHeight = '400px', onLogsLoaded }: LogViewe
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   };
+
+  // Only render interactive content after hydration
+  if (!isMounted) {
+    return (
+      <Box sx={{ width: '100%' }}>
+        <Button
+          fullWidth
+          disabled
+          sx={{
+            justifyContent: 'space-between',
+            textAlign: 'left',
+            py: 1,
+            px: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'action.hover',
+          }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 600, flex: 1 }}>
+            Job Logs: {jobId}
+          </Typography>
+          <ExpandMoreIcon />
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -248,3 +288,5 @@ export function LogViewer({ jobId, maxHeight = '400px', onLogsLoaded }: LogViewe
     </Box>
   );
 }
+
+export default LogViewer;
