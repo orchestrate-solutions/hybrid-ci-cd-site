@@ -1,0 +1,160 @@
+version: 1.0.0
+type: tool
+
+metadata:
+  id: github
+  name: GitHub / GitHub Actions
+  description: Receive push, pull request, and workflow events from GitHub (NET ZERO architecture)
+  category: version-control
+
+# ============================================================================
+# NET ZERO ARCHITECTURE: Relay + User-Owned Queue + Vault
+# ============================================================================
+
+relay:
+  # Relay deployment (user's infrastructure)
+  enabled: true
+  relay_id: relay_a1b2c3d4e5f6  # Generated during registration
+  
+  # User-owned queue configuration
+  queue:
+    provider: aws_sqs  # aws_sqs | azure_eventgrid | gcp_pubsub
+    queue_url: https://sqs.us-east-1.amazonaws.com/123456789012/github-webhook-queue
+    region: us-east-1
+    
+    # Cross-account IAM role for provider polling
+    role_arn: arn:aws:iam::123456789012:role/HybridCICDRelayPollerRole
+    
+    # Optional: Dead-letter queue for failed messages
+    dlq_url: https://sqs.us-east-1.amazonaws.com/123456789012/github-webhook-dlq
+  
+  # User's vault configuration (relay fetches secrets, never provider)
+  vault:
+    provider: aws_secrets_manager  # aws_secrets_manager | azure_keyvault | gcp_secret_manager | hashicorp_vault
+    region: us-east-1
+    secret_prefix: hybrid-ci-cd/github/
+    
+    # Secrets stored in vault (relay fetches these)
+    secrets:
+      webhook_secret: aws_secrets_manager://us-east-1/hybrid-ci-cd/github/webhook-secret
+      oauth_token: aws_secrets_manager://us-east-1/hybrid-ci-cd/github/oauth-token
+      api_key: aws_secrets_manager://us-east-1/hybrid-ci-cd/github/api-key
+
+integration:
+  webhooks:
+    enabled: true
+    endpoint: /relay/webhooks/github  # Relay-hosted endpoint (user's infrastructure)
+    
+    verification:
+      method: hmac-sha256
+      header: X-Hub-Signature-256
+      # OLD (VULNERABLE): secret_env_var: GITHUB_WEBHOOK_SECRET
+      # NEW (SECURE): Relay fetches from vault, verifies signature, sanitizes payload
+      secret_vault_path: aws_secrets_manager://us-east-1/hybrid-ci-cd/github/webhook-secret
+    
+    events:
+      push:
+        http_event_header: X-GitHub-Event
+        header_value: push
+        
+        # Metadata fields extracted by relay (NO FULL PAYLOAD)
+        data_mapping:
+          event_type: push
+          repository: $.repository.full_name
+          branch: $.ref
+          commit_sha: $.head_commit.id
+          commit_message: $.head_commit.message
+          author: $.pusher.name
+          timestamp: $.head_commit.timestamp
+          source_url: $.head_commit.url
+        
+        # Relay forwards ONLY extracted metadata to user's queue
+        # Provider polls queue, applies routing rules, sends decisions back
+      
+      pull_request:
+        http_event_header: X-GitHub-Event
+        header_value: pull_request
+        data_mapping:
+          event_type: pull_request
+          repository: $.pull_request.head.repo.full_name
+          branch: $.pull_request.head.ref
+          action: $.action
+          pr_number: $.pull_request.number
+          author: $.pull_request.user.login
+          source_url: $.pull_request.html_url
+      
+      workflow_run:
+        http_event_header: X-GitHub-Event
+        header_value: workflow_run
+        data_mapping:
+          event_type: workflow_run
+          repository: $.repository.full_name
+          workflow_name: $.workflow.name
+          workflow_status: $.workflow_run.status
+          workflow_conclusion: $.workflow_run.conclusion
+          run_id: $.workflow_run.id
+          run_url: $.workflow_run.html_url
+          branch: $.workflow_run.head_branch
+          commit_sha: $.workflow_run.head_sha
+          author: $.workflow_run.triggering_actor.login
+          timestamp: $.workflow_run.updated_at
+
+# ============================================================================
+# Routing Rules (Applied by Provider's Stateless Orchestration)
+# ============================================================================
+
+routing:
+  # Provider polls user's queue, applies these rules, sends decisions back
+  
+  push:
+    action: trigger_build
+    target: build-pipeline
+    conditions:
+      - branch: main
+      - branch: develop
+  
+  pull_request:
+    action: run_tests
+    target: test-pipeline
+    conditions:
+      - action: opened
+      - action: synchronize
+  
+  workflow_run:
+    action: notify
+    target: slack-channel
+    conditions:
+      - workflow_status: completed
+      - workflow_conclusion: failure
+
+features:
+  auto_job_creation: true
+
+# ============================================================================
+# Security Model: NET ZERO Additional Risk
+# ============================================================================
+
+security:
+  # User owns:
+  # - Relay (deployed on their infrastructure)
+  # - Queue (AWS SQS, Azure Event Grid, GCP Pub/Sub)
+  # - Vault (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager)
+  # - All webhook secrets (never shared with provider)
+  
+  # Provider has:
+  # - Read-only IAM access to user's queue (cross-account role)
+  # - NO access to secrets or full payloads
+  # - Stateless orchestration engine (applies routing rules)
+  # - Sends routing decisions back to user's queue
+  
+  # Risk comparison:
+  # - GitHub Actions: User trusts GitHub with code + secrets
+  # - Hybrid CI/CD (NET ZERO): Same trust model - user trusts only their infra
+  # - Provider sees ONLY metadata (repo, branch, commit SHA, event type)
+  # - Provider NEVER sees: secrets, tokens, credentials, full payloads
+
+contribution:
+  author: orchestrate-solutions
+  license: MIT
+  allow_forks: true
+  relay_template_url: https://github.com/orchestrate-solutions/hybrid-ci-cd-relay-templates

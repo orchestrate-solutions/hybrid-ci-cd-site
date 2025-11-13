@@ -1487,3 +1487,434 @@ git push origin feat/jobs-table
 - ✅ **All tests pass before pushing** (CI enforces this)
 - ✅ **Refactoring confidence** (green tests = safe changes)
 - ✅ **Documentation via tests** (tests show behavior)
+
+
+---
+
+## NET ZERO Risk Architecture (Relay + User-Owned Queue + Vault)
+
+### Overview
+
+The **NET ZERO Risk Architecture** eliminates provider access to user secrets by shifting data custody to user-owned infrastructure. This achieves **NET ZERO additional risk** compared to standard DevOps workflows (GitHub Actions, Jenkins, AWS).
+
+**Key Principle**: Provider sees ONLY metadata (repo name, commit SHA, branch, event type). Provider NEVER sees: webhook secrets, OAuth tokens, API keys, database passwords, or full payloads.
+
+### Architecture Components
+
+```
+User's Infrastructure:
+┌─────────────────────────────────────────────────────────────┐
+│  Relay (User-Deployed)                                      │
+│  ├─ Receives webhook from tool (GitHub, Jenkins, etc.)     │
+│  ├─ Fetches secret from User's Vault                       │
+│  ├─ Verifies signature (HMAC-SHA256, token, etc.)          │
+│  ├─ Sanitizes payload → metadata only                      │
+│  └─ Forwards to User's Queue (SQS, EventBridge, Pub/Sub)   │
+└─────────────────────────────────────────────────────────────┘
+                            ↓ (metadata only)
+┌─────────────────────────────────────────────────────────────┐
+│  User's Queue (AWS SQS / Azure Event Grid / GCP Pub/Sub)   │
+│  ├─ Stores sanitized metadata only                         │
+│  ├─ No secrets, no full payloads                           │
+│  └─ Provider has READ-ONLY IAM access (cross-account)      │
+└─────────────────────────────────────────────────────────────┘
+                            ↓ (poll metadata)
+┌─────────────────────────────────────────────────────────────┐
+│  Provider's Stateless Orchestration (CodeUChain)           │
+│  ├─ PollUserQueueLink (read metadata from user's queue)    │
+│  ├─ ApplyRoutingRulesLink (stateless rule matching)        │
+│  ├─ SendDecisionsLink (write decisions back to queue)      │
+│  └─ NO DATA PERSISTENCE (truly stateless)                  │
+└─────────────────────────────────────────────────────────────┘
+                            ↓ (routing decisions)
+┌─────────────────────────────────────────────────────────────┐
+│  User's Queue (Decisions)                                   │
+│  ├─ Relay polls for routing decisions                      │
+│  ├─ Executes actions in user's infrastructure              │
+│  └─ All execution happens in user's account                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Risk Comparison Table
+
+| Risk Factor | GitHub Actions | Jenkins (Self-Hosted) | Hybrid CI/CD (OLD - Vulnerable) | Hybrid CI/CD (NET ZERO) |
+|-------------|----------------|----------------------|--------------------------------|------------------------|
+| **Webhook Secrets** | GitHub stores | User stores | **Provider stores** ❌ | User vault only ✅ |
+| **OAuth Tokens** | GitHub stores | User stores | **Provider stores** ❌ | User vault only ✅ |
+| **Database Passwords** | GitHub Secrets | User stores | **Provider could see** ❌ | User vault only ✅ |
+| **Full Webhook Payloads** | GitHub sees | User only | **Provider stores** ❌ | User queue only (metadata) ✅ |
+| **Data Custody** | GitHub | User | **Provider** ❌ | User ✅ |
+| **Provider Access** | N/A | N/A | Full secrets access ❌ | Read-only metadata ✅ |
+| **Risk vs. Baseline** | Baseline | Baseline | **INCREASED RISK** ❌ | **NET ZERO** ✅ |
+
+**Conclusion**: NET ZERO architecture matches GitHub Actions/Jenkins baseline risk. User trusts only their own infrastructure, not provider.
+
+### Implementation Files
+
+**Backend (Python/FastAPI)**:
+- `backend/src/models/webhook.py` - WebhookEvent with `payload_hash` (no `payload` field)
+- `backend/src/components/adapters/webhook_adapter.py` - Payload hashing (line ~106: `hashlib.sha256(payload).hexdigest()`)
+- `backend/src/db/webhook_store.py` - Stores only `payload_hash`, not full payload
+- `backend/src/integrations/queues/base.py` - QueueClientInterface (multi-cloud abstraction)
+- `backend/src/integrations/queues/factory.py` - Config-driven queue client factory
+- `backend/src/integrations/queues/aws_sqs.py` - AWS SQS implementation (IAM role auth)
+- `backend/src/integrations/queues/azure_eventgrid.py` - Azure Event Grid placeholder
+- `backend/src/integrations/queues/gcp_pubsub.py` - GCP Pub/Sub placeholder
+- `backend/src/orchestration/router.py` - Stateless orchestration (PollUserQueueLink, ApplyRoutingRulesLink, SendDecisionsLink)
+- `backend/src/relay_routes.py` - Relay registration endpoint (OAuth2, API key generation)
+
+**Config Files**:
+- `config/webhooks/tools/github-net-zero.yaml` - Example NET ZERO config with queue + vault
+- `config/schemas/net-zero-relay-config.schema.json` - JSON schema for validation
+
+### CodeUChain Orchestration Pattern (Stateless)
+
+```python
+from codeuchain.core import Context, Chain, Link
+from src.integrations.queues.factory import create_queue_client
+
+class PollUserQueueLink(Link[dict, dict]):
+    """Poll user's queue for metadata (no secrets)."""
+    async def call(self, ctx: Context[dict]) -> Context[dict]:
+        queue_config = ctx.get("queue_config") or {}
+        queue_client = create_queue_client(queue_config)
+        
+        # Poll messages (long-polling)
+        messages = await queue_client.poll_messages(max_messages=10, wait_seconds=20)
+        
+        # Store in context (immutable)
+        return ctx.insert("messages", messages).insert("queue_client", queue_client)
+
+class ApplyRoutingRulesLink(Link[dict, dict]):
+    """Apply config-driven routing rules (stateless)."""
+    async def call(self, ctx: Context[dict]) -> Context[dict]:
+        messages = ctx.get("messages") or []
+        routing_config = ctx.get("routing_config") or {}
+        
+        routing_decisions = []
+        for msg in messages:
+            tool = msg.get("tool")
+            event_type = msg.get("event_type")
+            rule = routing_config.get(tool, {}).get(event_type)
+            
+            if rule:
+                routing_decisions.append({
+                    "event_id": msg.get("event_id"),
+                    "action": rule.get("action"),
+                    "target": rule.get("target"),
+                    "metadata": msg.get("metadata")
+                })
+        
+        return ctx.insert("routing_decisions", routing_decisions)
+
+class SendDecisionsLink(Link[dict, dict]):
+    """Send routing decisions back to user's queue."""
+    async def call(self, ctx: Context[dict]) -> Context[dict]:
+        routing_decisions = ctx.get("routing_decisions") or []
+        queue_client = ctx.get("queue_client")
+        
+        for decision in routing_decisions:
+            await queue_client.send_message(decision)
+        
+        # Delete processed messages
+        messages = ctx.get("messages") or []
+        for msg in messages:
+            await queue_client.delete_message(msg.get("receipt_handle"))
+        
+        return ctx.insert("sent_count", len(routing_decisions))
+
+# Compose into chain
+class RelayOrchestrationChain:
+    def __init__(self):
+        self.chain = Chain()
+        self.chain.add_link(PollUserQueueLink(), "poll_queue")
+        self.chain.add_link(ApplyRoutingRulesLink(), "apply_rules")
+        self.chain.add_link(SendDecisionsLink(), "send_decisions")
+        
+        # Conditional routing
+        self.chain.connect("poll_queue", "apply_rules", lambda c: len(c.get("messages") or []) > 0)
+        self.chain.connect("apply_rules", "send_decisions", lambda c: len(c.get("routing_decisions") or []) > 0)
+    
+    async def run(self, request_data: dict) -> dict:
+        ctx = Context(request_data)
+        result_ctx = await self.chain.run(ctx)
+        return {"sent_count": result_ctx.get("sent_count") or 0}
+```
+
+### Config Schema (NET ZERO)
+
+**Key Changes from OLD Config**:
+- ❌ REMOVED: `secret_env_var` (no secrets in provider environment)
+- ✅ ADDED: `relay.queue` (user's queue config)
+- ✅ ADDED: `relay.vault` (user's vault config)
+- ✅ ADDED: `secret_vault_path` (vault URI references)
+- ✅ ADDED: `routing` (stateless routing rules)
+
+**Example Config**:
+```yaml
+version: 1.0.0
+type: tool
+
+metadata:
+  id: github
+  name: GitHub / GitHub Actions
+  category: version-control
+
+relay:
+  enabled: true
+  relay_id: relay_a1b2c3d4e5f6
+  
+  queue:
+    provider: aws_sqs
+    queue_url: https://sqs.us-east-1.amazonaws.com/123456789012/github-webhook-queue
+    region: us-east-1
+    role_arn: arn:aws:iam::123456789012:role/HybridCICDRelayPollerRole
+  
+  vault:
+    provider: aws_secrets_manager
+    region: us-east-1
+    secret_prefix: hybrid-ci-cd/github/
+    secrets:
+      webhook_secret: aws_secrets_manager://us-east-1/hybrid-ci-cd/github/webhook-secret
+      oauth_token: aws_secrets_manager://us-east-1/hybrid-ci-cd/github/oauth-token
+
+integration:
+  webhooks:
+    enabled: true
+    endpoint: /relay/webhooks/github
+    verification:
+      method: hmac-sha256
+      header: X-Hub-Signature-256
+      secret_vault_path: aws_secrets_manager://us-east-1/hybrid-ci-cd/github/webhook-secret
+    events:
+      push:
+        http_event_header: X-GitHub-Event
+        header_value: push
+        data_mapping:
+          event_type: push
+          repository: $.repository.full_name
+          branch: $.ref
+          commit_sha: $.head_commit.id
+
+routing:
+  push:
+    action: trigger_build
+    target: build-pipeline
+    conditions:
+      - branch: main
+```
+
+### Implementation Rules (DO / DON'T)
+
+**✅ DO**:
+- Use `payload_hash` for audit trail (SHA-256)
+- Use queue factory: `create_queue_client(queue_config)`
+- Verify relay_id and API key on every request
+- Store only metadata in WebhookEvent (no `payload` field)
+- Use vault URIs for secrets: `aws_secrets_manager://region/path`
+- Keep orchestration stateless (no data persistence)
+- Use IAM role assumption for cross-account queue access
+- Poll with long-polling (20 seconds wait time)
+- Delete messages after processing (atomic)
+
+**❌ DON'T**:
+- Store full webhook payloads (security vulnerability)
+- Access user's vault from provider (relay does this)
+- Persist routing decisions (stateless only)
+- Hard-code queue providers (use factory pattern)
+- Store API keys in plaintext (hash with SHA-256)
+- Skip signature verification (relay must verify)
+- Use short polling (wasteful, high cost)
+- Keep processed messages in queue (delete after send)
+
+### Multi-Cloud Queue Support
+
+**Supported Providers** (config-driven):
+- AWS SQS (`aws_sqs`) - ✅ Fully implemented
+- Azure Event Grid (`azure_eventgrid`) - 🟡 Placeholder (Phase 2)
+- GCP Pub/Sub (`gcp_pubsub`) - 🟡 Placeholder (Phase 2)
+
+**Queue Client Factory**:
+```python
+from src.integrations.queues.factory import create_queue_client, list_supported_providers
+
+# Create client from config
+queue_config = {
+    "provider": "aws_sqs",
+    "queue_url": "https://sqs.us-east-1.amazonaws.com/...",
+    "role_arn": "arn:aws:iam::123456789012:role/RelayPollerRole",
+    "region": "us-east-1"
+}
+client = create_queue_client(queue_config)
+
+# List supported providers
+providers = list_supported_providers()  # ["aws_sqs", "azure_eventgrid", "gcp_pubsub"]
+```
+
+**Adding New Providers** (extensible):
+1. Implement `QueueClientInterface` in `backend/src/integrations/queues/<provider>.py`
+2. Add provider to factory map in `factory.py`
+3. Document config format in placeholder file
+4. No code changes needed in orchestration layer (abstraction works!)
+
+### Relay Registration Flow
+
+**Endpoint**: `POST /api/relays/register`
+
+**Request**:
+```json
+{
+  "relay_name": "Production GitHub Actions Relay",
+  "queue_config": {
+    "provider": "aws_sqs",
+    "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/relay-queue",
+    "role_arn": "arn:aws:iam::123456789012:role/RelayPollerRole",
+    "region": "us-east-1"
+  },
+  "vault_config": {
+    "provider": "aws_secrets_manager",
+    "region": "us-east-1",
+    "secret_prefix": "hybrid-ci-cd/"
+  },
+  "oauth_token": "ya29.a0AfH6SMBx..."
+}
+```
+
+**Response** (one-time API key display):
+```json
+{
+  "relay_id": "relay_a1b2c3d4e5f6",
+  "api_key": "sk_relay_1234567890abcdefghijklmnopqrstuvwxyz",
+  "relay_name": "Production GitHub Actions Relay",
+  "queue_config": { ... },
+  "created_at": "2025-11-12T10:00:00Z",
+  "expires_at": "2026-11-12T10:00:00Z"
+}
+```
+
+**Security**:
+- OAuth2 token validated before registration
+- API key shown ONCE (user must save in vault)
+- Only API key HASH stored (SHA-256, never plaintext)
+- API key used for relay heartbeats and queue message verification
+- Relay_id + API key required for all relay operations
+
+### Relay Deployment Workflow
+
+**User Steps**:
+1. Register relay: `POST /api/relays/register` with OAuth2 token
+2. Save API key in vault: `aws secretsmanager put-secret-value --secret-id hybrid-ci-cd/relay-api-key --secret-string "sk_relay_..."`
+3. Deploy relay to user's infrastructure:
+   - Docker: `docker run -e RELAY_ID=relay_xxx -e API_KEY_VAULT_PATH=aws_secrets_manager://us-east-1/hybrid-ci-cd/relay-api-key ...`
+   - Kubernetes: `kubectl apply -f relay-deployment.yaml`
+   - Lambda: Deploy relay Lambda function with IAM role for vault access
+4. Configure webhook on tool (GitHub, Jenkins, etc.):
+   - Webhook URL: `https://relay.user-infra.com/webhooks/github`
+   - Webhook secret: Store in vault, relay fetches on each request
+5. Relay forwards metadata to user's queue
+6. Provider polls queue, sends routing decisions back
+7. Relay executes actions in user's infrastructure
+
+**Provider Steps** (automated):
+1. Poll user's queue every 20 seconds (long-polling)
+2. Apply routing rules to metadata
+3. Send routing decisions back to queue
+4. Delete processed messages
+5. Monitor relay health via heartbeats
+
+### Testing Strategy (NET ZERO)
+
+**Unit Tests** (backend/tests/unit/test_net_zero.py):
+```python
+import pytest
+from src.models.webhook import WebhookEvent
+from src.components.adapters.webhook_adapter import UniversalWebhookAdapter
+from src.integrations.queues.factory import create_queue_client
+from src.orchestration.router import RelayOrchestrationChain
+
+@pytest.mark.asyncio
+async def test_webhook_event_no_payload_field():
+    """Verify WebhookEvent does NOT have payload field (security)."""
+    event = WebhookEvent(
+        event_id="evt_123",
+        tool="github",
+        event_type="push",
+        timestamp="2025-11-12T10:00:00Z",
+        source_url="https://github.com/...",
+        metadata={"repo": "user/repo"},
+        payload_hash="abc123..."
+    )
+    
+    # Should not have payload field
+    assert not hasattr(event, "payload")
+    assert event.payload_hash == "abc123..."
+
+@pytest.mark.asyncio
+async def test_webhook_adapter_sanitizes_payload():
+    """Verify adapter hashes payload instead of storing it."""
+    adapter = UniversalWebhookAdapter(config={...})
+    raw_payload = b'{"secret": "should_never_be_stored", "repo": "user/repo"}'
+    
+    event = await adapter.parse(raw_payload, headers={...})
+    
+    # Should have payload_hash, not payload
+    assert event.payload_hash is not None
+    assert "secret" not in str(event)  # Secret not in event
+    assert event.metadata.get("repo") == "user/repo"  # Metadata extracted
+
+@pytest.mark.asyncio
+async def test_queue_client_factory():
+    """Verify queue factory creates correct clients."""
+    aws_config = {"provider": "aws_sqs", "queue_url": "...", "region": "us-east-1"}
+    client = create_queue_client(aws_config)
+    
+    assert client.__class__.__name__ == "AWSSQSClient"
+
+@pytest.mark.asyncio
+async def test_orchestration_chain_stateless():
+    """Verify orchestration chain is stateless (no persistence)."""
+    chain = RelayOrchestrationChain()
+    
+    # Run chain
+    result = await chain.run({
+        "queue_config": {...},
+        "routing_config": {...}
+    })
+    
+    # Should return sent_count, no stored state
+    assert "sent_count" in result
+```
+
+**Integration Tests** (backend/tests/integration/test_relay_e2e.py):
+- Test full relay registration → queue polling → routing → decision sending
+- Test multi-cloud queue support (AWS SQS, Azure Event Grid placeholders)
+- Test relay heartbeats and health monitoring
+
+### Security Audit Checklist
+
+**Before Production**:
+- [ ] Verify no `payload` field in WebhookEvent model
+- [ ] Verify `payload_hash` present in all webhook events
+- [ ] Verify secrets not leaked in logs (grep for "secret", "token", "password")
+- [ ] Verify queue client factory uses correct provider
+- [ ] Verify orchestration chain is stateless (no DB writes)
+- [ ] Verify API keys hashed (SHA-256), never plaintext
+- [ ] Verify IAM role permissions (read-only queue access)
+- [ ] Verify relay signature verification before forwarding
+- [ ] Verify OAuth2 token validation on registration
+- [ ] Verify rate limiting on relay registration endpoint
+
+### Future Enhancements (Phase 2)
+
+- [ ] Azure Event Grid client implementation
+- [ ] GCP Pub/Sub client implementation
+- [ ] WebSocket support (real-time instead of polling)
+- [ ] Advanced routing rules (complex conditions, filters)
+- [ ] Relay health dashboards (uptime, message throughput)
+- [ ] Multi-region relay deployment templates
+- [ ] Automated relay scaling (based on queue depth)
+- [ ] Dead-letter queue monitoring and alerting
+- [ ] Cost optimization (reduce polling frequency when idle)
+- [ ] Relay versioning and auto-updates
+
+---

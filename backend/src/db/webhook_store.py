@@ -8,6 +8,8 @@ Interface:
 
 This pattern enables testing with in-memory store while using
 DynamoDB in production - same code, different store.
+
+SECURITY: Stores only metadata and payload_hash, never full payloads.
 """
 
 from abc import ABC, abstractmethod
@@ -25,7 +27,7 @@ class WebhookEventStoreInterface(ABC):
         Save webhook event to store.
         
         Args:
-            event: WebhookEvent to save
+            event: WebhookEvent to save (metadata + payload_hash only)
         
         Returns:
             str: Event ID (usually from event['event_id'])
@@ -96,6 +98,8 @@ class InMemoryWebhookEventStore(WebhookEventStoreInterface):
     
     Perfect for testing and development.
     Data is lost on restart.
+    
+    SECURITY: Only stores metadata + payload_hash (no full payloads).
     """
     
     def __init__(self):
@@ -103,7 +107,12 @@ class InMemoryWebhookEventStore(WebhookEventStoreInterface):
         self.events: dict[str, WebhookEvent] = {}
     
     async def save_event(self, event: WebhookEvent) -> str:
-        """Save event to memory"""
+        """
+        Save event to memory.
+        
+        SECURITY: Event contains only metadata + payload_hash.
+        Full webhook payload is never stored.
+        """
         event_id = event['event_id']
         self.events[event_id] = event
         return event_id
@@ -152,7 +161,9 @@ class DynamoDBWebhookEventStore(WebhookEventStoreInterface):
     - DynamoDB table: webhook_events
     - Partition key: event_id (String)
     - GSI1: tool (String) + timestamp (String)
-    - TTL: expires_at (30 days)
+    - TTL: expires_at (7 days for minimal retention)
+    
+    SECURITY: Only stores metadata + payload_hash (no full payloads).
     """
     
     def __init__(self, table_name: str = "webhook_events", dynamodb_resource: Optional[Any] = None):
@@ -172,24 +183,29 @@ class DynamoDBWebhookEventStore(WebhookEventStoreInterface):
         self.table = dynamodb_resource.Table(table_name)
     
     async def save_event(self, event: WebhookEvent) -> str:
-        """Save event to DynamoDB"""
+        """
+        Save event to DynamoDB.
+        
+        SECURITY: Event contains only metadata + payload_hash.
+        Full webhook payload is never persisted to database.
+        """
         event_id = event['event_id']
         
-        # Prepare item for DynamoDB
+        # Prepare item for DynamoDB (metadata + payload_hash only)
         item = {
             'event_id': event_id,
             'tool': event['tool'],
             'event_type': event['event_type'],
             'timestamp': event['timestamp'].isoformat(),
             'source_url': event['source_url'],
-            'metadata': event['metadata'],
-            'payload': event['payload'],
+            'metadata': event['metadata'],           # ✅ Only extracted fields
+            'payload_hash': event['payload_hash'],   # ✅ Hash for audit (not full payload)
             'created_at': datetime.utcnow().isoformat(),
         }
         
-        # Set TTL (30 days from now)
+        # Set TTL (7 days for minimal retention, user can adjust)
         from datetime import timedelta
-        ttl = datetime.utcnow() + timedelta(days=30)
+        ttl = datetime.utcnow() + timedelta(days=7)
         item['expires_at'] = int(ttl.timestamp())
         
         # Put item
@@ -213,7 +229,7 @@ class DynamoDBWebhookEventStore(WebhookEventStoreInterface):
             'timestamp': datetime.fromisoformat(item['timestamp']),
             'source_url': item['source_url'],
             'metadata': item.get('metadata', {}),
-            'payload': item.get('payload', {})
+            'payload_hash': item.get('payload_hash', '')
         }
     
     async def list_events(self, tool: str, limit: int = 100) -> List[WebhookEvent]:

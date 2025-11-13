@@ -10,8 +10,11 @@ Pattern:
 2. Verify signature using method from config
 3. Extract event type from headers/payload using config
 4. Map fields using JSONPath expressions from config
-5. Normalize to WebhookEvent format
+5. Normalize to WebhookEvent format (metadata only, no full payload)
 6. Return or raise with clear error messages
+
+SECURITY: Full payload is never stored. Only metadata (extracted fields)
+and payload_hash (for audit) are included in WebhookEvent.
 """
 
 import hmac
@@ -34,6 +37,7 @@ class UniversalWebhookAdapter:
     - Signature verification: HMAC-SHA256, token, signature, none
     - Event type extraction: Header-based or payload-based
     - Field extraction: JSONPath expressions (any nested field)
+    - Payload sanitization: Only metadata stored, full payload hashed
     - Error handling: Clear messages for debugging
     
     No tool-specific code - all differences are in YAML configs.
@@ -62,14 +66,14 @@ class UniversalWebhookAdapter:
         2. Parse JSON
         3. Extract event type
         4. Map fields using JSONPath expressions
-        5. Normalize to WebhookEvent
+        5. Normalize to WebhookEvent (metadata only, payload hashed)
         
         Args:
             payload: Raw webhook body (bytes)
             headers: HTTP headers dict
         
         Returns:
-            WebhookEvent: Normalized event
+            WebhookEvent: Normalized event with metadata and payload_hash
         
         Raises:
             ValueError: For invalid signature, malformed JSON, unknown event type
@@ -92,8 +96,11 @@ class UniversalWebhookAdapter:
         # Step 4: Map fields using config's data_mapping
         metadata = await self._extract_fields(payload_dict, event_type)
         
-        # Step 5: Normalize to WebhookEvent
+        # Step 5: Normalize to WebhookEvent (sanitized)
         source_url = metadata.pop('source_url', f"{self.tool_id}://event")
+        
+        # SECURITY: Hash payload for audit trail, don't store full payload
+        payload_hash = hashlib.sha256(payload).hexdigest()
         
         webhook_event: WebhookEvent = {
             'event_id': str(uuid.uuid4()),
@@ -101,8 +108,8 @@ class UniversalWebhookAdapter:
             'event_type': event_type,
             'timestamp': datetime.utcnow(),
             'source_url': source_url,
-            'metadata': metadata,
-            'payload': payload_dict
+            'metadata': metadata,              # ✅ Only extracted fields
+            'payload_hash': payload_hash       # ✅ Hash for audit, not full payload
         }
         
         return webhook_event

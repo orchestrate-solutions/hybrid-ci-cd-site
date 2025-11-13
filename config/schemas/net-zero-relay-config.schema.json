@@ -1,0 +1,274 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NET ZERO Relay Configuration Schema",
+  "description": "Configuration schema for hybrid CI/CD relay with user-owned queue and vault",
+  "type": "object",
+  "required": ["version", "type", "metadata", "relay", "integration"],
+  
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration version (semantic versioning)"
+    },
+    
+    "type": {
+      "type": "string",
+      "enum": ["tool"],
+      "description": "Configuration type"
+    },
+    
+    "metadata": {
+      "type": "object",
+      "required": ["id", "name", "description", "category"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Unique tool identifier (lowercase, hyphenated)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable tool name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Tool description"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["version-control", "ci-cd", "iac", "monitoring", "container"],
+          "description": "Tool category"
+        }
+      }
+    },
+    
+    "relay": {
+      "type": "object",
+      "required": ["enabled", "queue", "vault"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable relay mode (NET ZERO architecture)"
+        },
+        
+        "relay_id": {
+          "type": "string",
+          "pattern": "^relay_[a-f0-9]{24}$",
+          "description": "Relay identifier (generated during registration)"
+        },
+        
+        "queue": {
+          "type": "object",
+          "required": ["provider", "queue_url", "region"],
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["aws_sqs", "azure_eventgrid", "gcp_pubsub"],
+              "description": "Queue provider"
+            },
+            
+            "queue_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "User's queue URL"
+            },
+            
+            "region": {
+              "type": "string",
+              "description": "Cloud region (e.g., us-east-1, westus2, us-central1)"
+            },
+            
+            "role_arn": {
+              "type": "string",
+              "pattern": "^arn:aws:iam::\\d{12}:role/.*",
+              "description": "AWS IAM role ARN for cross-account access (AWS SQS only)"
+            },
+            
+            "dlq_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Dead-letter queue URL (optional)"
+            }
+          }
+        },
+        
+        "vault": {
+          "type": "object",
+          "required": ["provider", "secrets"],
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["aws_secrets_manager", "azure_keyvault", "gcp_secret_manager", "hashicorp_vault"],
+              "description": "Vault provider"
+            },
+            
+            "region": {
+              "type": "string",
+              "description": "Cloud region (AWS/Azure/GCP)"
+            },
+            
+            "secret_prefix": {
+              "type": "string",
+              "description": "Prefix for secret names (e.g., hybrid-ci-cd/github/)"
+            },
+            
+            "vault_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Vault URL (HashiCorp Vault only)"
+            },
+            
+            "secrets": {
+              "type": "object",
+              "description": "Vault path references for secrets",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^(aws_secrets_manager|azure_keyvault|gcp_secret_manager|hashicorp_vault)://.*",
+                "description": "Vault URI (e.g., aws_secrets_manager://us-east-1/hybrid-ci-cd/github/webhook-secret)"
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "integration": {
+      "type": "object",
+      "required": ["webhooks"],
+      "properties": {
+        "webhooks": {
+          "type": "object",
+          "required": ["enabled", "endpoint", "verification", "events"],
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable webhook integration"
+            },
+            
+            "endpoint": {
+              "type": "string",
+              "pattern": "^/.*",
+              "description": "Relay webhook endpoint path"
+            },
+            
+            "verification": {
+              "type": "object",
+              "required": ["method", "header", "secret_vault_path"],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": ["hmac-sha256", "token", "signature", "none"],
+                  "description": "Signature verification method"
+                },
+                
+                "header": {
+                  "type": "string",
+                  "description": "HTTP header containing signature/token"
+                },
+                
+                "secret_vault_path": {
+                  "type": "string",
+                  "pattern": "^(aws_secrets_manager|azure_keyvault|gcp_secret_manager|hashicorp_vault)://.*",
+                  "description": "Vault path to webhook secret (relay fetches, verifies signature)"
+                }
+              }
+            },
+            
+            "events": {
+              "type": "object",
+              "description": "Event type configurations",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["http_event_header", "header_value", "data_mapping"],
+                "properties": {
+                  "http_event_header": {
+                    "type": "string",
+                    "description": "HTTP header identifying event type"
+                  },
+                  
+                  "header_value": {
+                    "type": "string",
+                    "description": "Header value for this event type"
+                  },
+                  
+                  "data_mapping": {
+                    "type": "object",
+                    "description": "JSONPath mappings for metadata extraction (NO FULL PAYLOAD)",
+                    "additionalProperties": {
+                      "type": "string",
+                      "description": "JSONPath expression (e.g., $.repository.full_name)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "routing": {
+      "type": "object",
+      "description": "Routing rules applied by provider's stateless orchestration",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["action", "target"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Routing action (e.g., trigger_build, run_tests, notify)"
+          },
+          
+          "target": {
+            "type": "string",
+            "description": "Routing target (e.g., build-pipeline, test-pipeline, slack-channel)"
+          },
+          
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Routing conditions (key-value pairs)"
+            }
+          }
+        }
+      }
+    },
+    
+    "features": {
+      "type": "object",
+      "properties": {
+        "auto_job_creation": {
+          "type": "boolean",
+          "description": "Automatically create jobs from webhook events"
+        }
+      }
+    },
+    
+    "security": {
+      "type": "object",
+      "description": "Security model and risk comparison documentation"
+    },
+    
+    "contribution": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "allow_forks": {
+          "type": "boolean"
+        },
+        "relay_template_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to relay deployment template repository"
+        }
+      }
+    }
+  }
+}
