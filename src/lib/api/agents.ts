@@ -43,7 +43,7 @@ export async function listAgents(params?: ListAgentsParams): Promise<ListAgentsR
     return getDemoAgentsResponse();
   }
 
-  const url = new URL(`${BASE_URL}/api/dashboard/agents`);
+  const url = new URL(`${BASE_URL}/api/agents`);
   if (params?.limit) url.searchParams.set('limit', params.limit.toString());
   if (params?.offset) url.searchParams.set('offset', params.offset.toString());
   if (params?.pool_id) url.searchParams.set('pool_id', params.pool_id);
@@ -67,13 +67,13 @@ export async function getAgent(agentId: string): Promise<GetAgentResponse> {
     throw new Error(`Agent not found in demo: ${agentId}`);
   }
 
-  const res = await fetch(`${BASE_URL}/api/dashboard/agents/${agentId}`);
+  const res = await fetch(`${BASE_URL}/api/agents/${agentId}`);
   if (!res.ok) throw new Error(`Agent not found: ${agentId}`);
   return res.json();
 }
 
 export async function updateAgent(agentId: string, data: UpdateAgentRequest): Promise<Agent> {
-  const res = await fetch(`${BASE_URL}/api/dashboard/agents/${agentId}`, {
+  const res = await fetch(`${BASE_URL}/api/agents/${agentId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -82,8 +82,25 @@ export async function updateAgent(agentId: string, data: UpdateAgentRequest): Pr
   return res.json();
 }
 
+export async function createAgent(data: Omit<Agent, 'id' | 'created_at' | 'updated_at'>): Promise<Agent> {
+  const res = await fetch(`${BASE_URL}/api/agents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to create agent: ${res.status}`);
+  return res.json();
+}
+
+export async function deleteAgent(agentId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/agents/${agentId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error(`Failed to delete agent: ${res.status}`);
+}
+
 export async function listAgentPools(params?: ListAgentPoolsParams): Promise<ListAgentPoolsResponse> {
-  const url = new URL(`${BASE_URL}/api/dashboard/agent-pools`);
+  const url = new URL(`${BASE_URL}/api/agents/pools`);
   if (params?.limit) url.searchParams.set('limit', params.limit.toString());
   if (params?.offset) url.searchParams.set('offset', params.offset.toString());
   if (params?.status) url.searchParams.set('status', params.status);
@@ -96,7 +113,7 @@ export async function listAgentPools(params?: ListAgentPoolsParams): Promise<Lis
 }
 
 export async function createAgentPool(data: CreateAgentPoolRequest): Promise<AgentPool> {
-  const res = await fetch(`${BASE_URL}/api/dashboard/agent-pools`, {
+  const res = await fetch(`${BASE_URL}/api/agents/pools`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -106,7 +123,7 @@ export async function createAgentPool(data: CreateAgentPoolRequest): Promise<Age
 }
 
 export async function updateAgentPool(poolId: string, data: UpdateAgentPoolRequest): Promise<AgentPool> {
-  const res = await fetch(`${BASE_URL}/api/dashboard/agent-pools/${poolId}`, {
+  const res = await fetch(`${BASE_URL}/api/agents/pools/${poolId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -115,14 +132,21 @@ export async function updateAgentPool(poolId: string, data: UpdateAgentPoolReque
   return res.json();
 }
 
+export async function deleteAgentPool(poolId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/agents/pools/${poolId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error(`Failed to delete agent pool: ${res.status}`);
+}
+
 export async function getAgentMetrics(): Promise<AgentMetrics> {
-  const res = await fetch(`${BASE_URL}/api/dashboard/agents/metrics`);
+  const res = await fetch(`${BASE_URL}/api/agents/metrics`);
   if (!res.ok) throw new Error(`Failed to fetch agent metrics: ${res.status}`);
   return res.json();
 }
 
 export async function pauseAgent(agentId: string): Promise<Agent> {
-  const res = await fetch(`${BASE_URL}/api/dashboard/agents/${agentId}/pause`, {
+  const res = await fetch(`${BASE_URL}/api/agents/${agentId}/pause`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error(`Failed to pause agent: ${res.status}`);
@@ -130,9 +154,77 @@ export async function pauseAgent(agentId: string): Promise<Agent> {
 }
 
 export async function resumeAgent(agentId: string): Promise<Agent> {
-  const res = await fetch(`${BASE_URL}/api/dashboard/agents/${agentId}/resume`, {
+  const res = await fetch(`${BASE_URL}/api/agents/${agentId}/resume`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error(`Failed to resume agent: ${res.status}`);
   return res.json();
+}
+
+export async function drainPool(poolId: string): Promise<AgentPool> {
+  const res = await fetch(`${BASE_URL}/api/agents/pools/${poolId}/drain`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to drain agent pool: ${res.status}`);
+  return res.json();
+}
+
+export async function scalePool(poolId: string, desiredCount: number): Promise<AgentPool> {
+  const res = await fetch(`${BASE_URL}/api/agents/pools/${poolId}/scale`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ desired_count: desiredCount }),
+  });
+  if (!res.ok) throw new Error(`Failed to scale agent pool: ${res.status}`);
+  return res.json();
+}
+
+export async function getPoolHealth(poolId: string): Promise<AgentPool> {
+  const res = await fetch(`${BASE_URL}/api/agents/pools/${poolId}/health`);
+  if (!res.ok) throw new Error(`Failed to get pool health: ${res.status}`);
+  return res.json();
+}
+
+export async function registerAgent(data: {
+  name: string;
+  capabilities: string[];
+  pool_id?: string;
+}): Promise<Agent> {
+  const res = await fetch(`${BASE_URL}/api/agents/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to register agent: ${res.status}`);
+  return res.json();
+}
+
+export async function heartbeatAgent(agentId: string, data: {
+  status: string;
+  current_job_id?: string;
+}): Promise<Agent> {
+  const res = await fetch(`${BASE_URL}/api/agents/${agentId}/heartbeat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to send agent heartbeat: ${res.status}`);
+  return res.json();
+}
+
+export async function deregisterAgent(agentId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/agents/${agentId}/deregister`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to deregister agent: ${res.status}`);
+}
+
+export async function getHealthyAgents(poolId?: string): Promise<Agent[]> {
+  const url = new URL(`${BASE_URL}/api/agents/healthy`);
+  if (poolId) url.searchParams.set('pool_id', poolId);
+  
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Failed to get healthy agents: ${res.status}`);
+  const data = await res.json();
+  return data.agents || [];
 }
