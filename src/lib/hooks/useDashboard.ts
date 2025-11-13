@@ -2,13 +2,16 @@
  * useDashboard - Master hook for dashboard state management
  * 
  * Orchestrates jobs, agents, and deployments chains
- * Provides unified dashboard data interface
+ * Provides unified dashboard data interface with computed metrics
  * Returns: {jobs, agents, deployments, metrics, loading, error, refetch}
  */
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useChain, UseChainResult } from './useChain';
-import { DashboardChain } from '@/lib/chains/dashboard';
+import { JobsChain } from '@/lib/chains/jobs';
+import { AgentsChain } from '@/lib/chains/agents';
+import { DeploymentsChain } from '@/lib/chains/deployments';
+import { dashboardApi } from '@/lib/api/dashboard';
 import type { Job } from '@/lib/types/jobs';
 import type { Agent } from '@/lib/types/agents';
 import type { Deployment } from '@/lib/types/deployments';
@@ -16,11 +19,18 @@ import type { Deployment } from '@/lib/types/deployments';
 export interface DashboardMetrics {
   totalJobs: number;
   runningJobs: number;
+  completedJobs: number;
   failedJobs: number;
+  queuedJobs: number;
   totalAgents: number;
-  activeAgents: number;
+  onlineAgents: number;
+  busyAgents: number;
+  offlineAgents: number;
   totalDeployments: number;
-  activeDeployments: number;
+  completedDeployments: number;
+  failedDeployments: number;
+  inProgressDeployments: number;
+  uptime?: number;
 }
 
 export interface DashboardData {
@@ -38,67 +48,137 @@ export interface UseDashboardResult extends UseChainResult<DashboardData> {
 }
 
 /**
- * Hook for fetching and managing complete dashboard state
+ * Compute dashboard metrics from data
  */
-export function useDashboard(): UseDashboardResult {
-  // Create chain instance (memoized)
-  const dashboardChain = useMemo(() => new DashboardChain(), []);
+function computeMetrics(
+  jobs: Job[],
+  agents: Agent[],
+  deployments: Deployment[]
+): DashboardMetrics {
+  // Job statistics
+  const jobStats = {
+    total: jobs.length,
+    running: jobs.filter(j => j.status === 'RUNNING').length,
+    completed: jobs.filter(j => j.status === 'COMPLETED').length,
+    failed: jobs.filter(j => j.status === 'FAILED').length,
+    queued: jobs.filter(j => j.status === 'QUEUED').length,
+  };
 
-  // Prepare chain input
-  const chainInput = useMemo(
-    () => ({
-      filters: {
-        jobs: { status: 'ALL' },
-        agents: { status: 'ALL' },
-        deployments: { status: 'ALL' },
-      },
-    }),
-    []
-  );
+  // Agent statistics
+  const agentStats = {
+    total: agents.length,
+    online: agents.filter(a => a.status === 'ONLINE').length,
+    busy: agents.filter(a => a.status === 'BUSY').length,
+    offline: agents.filter(a => a.status === 'OFFLINE').length,
+  };
 
-  // Run chain
-  const { data, loading, error, refetch } = useChain<DashboardData>(
-    dashboardChain,
-    chainInput,
-    {
-      autoRun: true,
-      initialData: {
-        jobs: [],
-        agents: [],
-        deployments: [],
-        metrics: {
-          totalJobs: 0,
-          runningJobs: 0,
-          failedJobs: 0,
-          totalAgents: 0,
-          activeAgents: 0,
-          totalDeployments: 0,
-          activeDeployments: 0,
-        },
-      },
-    }
-  );
-
-  const dashboardData = data || {
-    jobs: [],
-    agents: [],
-    deployments: [],
-    metrics: {
-      totalJobs: 0,
-      runningJobs: 0,
-      failedJobs: 0,
-      totalAgents: 0,
-      activeAgents: 0,
-      totalDeployments: 0,
-      activeDeployments: 0,
-    },
+  // Deployment statistics
+  const deploymentStats = {
+    total: deployments.length,
+    completed: deployments.filter(d => d.status === 'COMPLETED').length,
+    failed: deployments.filter(d => d.status === 'FAILED').length,
+    inProgress: deployments.filter(d => d.status === 'IN_PROGRESS').length,
   };
 
   return {
-    jobs: dashboardData.jobs,
-    agents: dashboardData.agents,
-    deployments: dashboardData.deployments,
-    metrics: dashboardData.metrics,
+    totalJobs: jobStats.total,
+    runningJobs: jobStats.running,
+    completedJobs: jobStats.completed,
+    failedJobs: jobStats.failed,
+    queuedJobs: jobStats.queued,
+    totalAgents: agentStats.total,
+    onlineAgents: agentStats.online,
+    busyAgents: agentStats.busy,
+    offlineAgents: agentStats.offline,
+    totalDeployments: deploymentStats.total,
+    completedDeployments: deploymentStats.completed,
+    failedDeployments: deploymentStats.failed,
+    inProgressDeployments: deploymentStats.inProgress,
+  };
+}
+
+/**
+ * Hook for fetching and managing complete dashboard state
+ * 
+ * ARCHITECTURE:
+ * - Runs three parallel chains: JobsChain, AgentsChain, DeploymentsChain
+ * - Computes metrics from live data
+ * - Supports real-time polling via useRealTime integration
+ * 
+ * USAGE:
+ * ```tsx
+ * const { jobs, agents, deployments, metrics, loading, refetch } = useDashboard();
+ * 
+ * // Use real-time updates
+ * useRealTime({
+ *   onRefresh: refetch,
+ *   enabled: true,
+ * });
+ * ```
+ */
+export function useDashboard(): UseDashboardResult {
+  // Create chain instances (memoized)
+  const jobsChain = useMemo(() => new JobsChain(true), []); // includeQueue: true
+  const agentsChain = useMemo(() => new AgentsChain(true), []); // includePoolHealth: true
+  const deploymentsChain = useMemo(() => new DeploymentsChain(false), []); // includeHistory: false for overview
+
+  // Run all three chains in parallel
+  const jobsResult = useChain(
+    jobsChain,
+    { filters: { status: 'ALL', priority: 'ALL' } },
+    { autoRun: true, initialData: [] }
+  );
+
+  const agentsResult = useChain(
+    agentsChain,
+    { filters: { status: 'ALL' } },
+    { autoRun: true, initialData: [] }
+  );
+
+  const deploymentsResult = useChain(
+    deploymentsChain,
+    { filters: { status: 'ALL', region: 'ALL' } },
+    { autoRun: true, initialData: [] }
+  );
+
+  // Combine results
+  const jobs = jobsResult.data || [];
+  const agents = agentsResult.data || [];
+  const deployments = deploymentsResult.data || [];
+
+  // Compute metrics
+  const metrics = useMemo(
+    () => computeMetrics(jobs, agents, deployments),
+    [jobs, agents, deployments]
+  );
+
+  // Combined loading/error state
+  const loading =
+    jobsResult.loading || agentsResult.loading || deploymentsResult.loading;
+  const error =
+    jobsResult.error || agentsResult.error || deploymentsResult.error;
+
+  // Combined refetch function
+  const refetch = useCallback(async () => {
+    await Promise.all([
+      jobsResult.refetch(),
+      agentsResult.refetch(),
+      deploymentsResult.refetch(),
+    ]);
+  }, [jobsResult, agentsResult, deploymentsResult]);
+
+  const dashboardData: DashboardData = {
+    jobs,
+    agents,
+    deployments,
+    metrics,
+  };
+
+  return {
+    jobs,
+    agents,
+    deployments,
+    metrics,
     data: dashboardData,
     loading,
     error,
