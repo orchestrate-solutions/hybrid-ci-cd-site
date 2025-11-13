@@ -140,6 +140,58 @@ export async function createDeployment(
 }
 
 /**
+ * Deploy to staging environment
+ */
+export async function deployToStaging(
+  deploymentId: string,
+  config?: Record<string, unknown>
+): Promise<Deployment> {
+  const url = `${BASE_URL}/api/dashboard/deployments/${deploymentId}/staging`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to deploy to staging: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.deployment;
+  } catch (error) {
+    console.error(`deployToStaging error for ${deploymentId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Promote deployment from staging to production
+ */
+export async function promoteToProduction(deploymentId: string): Promise<Deployment> {
+  const url = `${BASE_URL}/api/dashboard/deployments/${deploymentId}/promote`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to promote to production: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.deployment;
+  } catch (error) {
+    console.error(`promoteToProduction error for ${deploymentId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Rollback a deployment to previous version
  */
 export async function rollbackDeployment(
@@ -243,33 +295,28 @@ export async function getDeploymentHistory(
 }
 
 /**
- * Export deployments to CSV
+ * Get service deployment history (all deployments for a service)
  */
-export async function exportDeploymentsToCSV(
-  params: ListDeploymentsParams = {}
-): Promise<Blob> {
-  const searchParams = new URLSearchParams();
-
-  if (params.status) searchParams.append('status', params.status);
-  if (params.environment) searchParams.append('environment', params.environment);
-  if (params.search) searchParams.append('search', params.search);
-
-  const url = `${BASE_URL}/api/dashboard/deployments/export/csv?${searchParams.toString()}`;
+export async function getServiceHistory(
+  serviceId: string,
+  limit = 50
+): Promise<Deployment[]> {
+  const url = `${BASE_URL}/api/dashboard/services/${serviceId}/deployments?limit=${limit}`;
 
   try {
     const res = await fetch(url, {
       method: 'GET',
-      headers: { 'Accept': 'text/csv' },
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!res.ok) {
-      throw new Error(`Failed to export deployments: ${res.status}`);
+      throw new Error(`Failed to get service deployment history: ${res.status}`);
     }
 
-    const blob = await res.blob();
-    return blob;
+    const data = await res.json();
+    return data.deployments || [];
   } catch (error) {
-    console.error('exportDeploymentsToCSV error:', error);
+    console.error(`getServiceHistory error for ${serviceId}:`, error);
     throw error;
   }
 }
