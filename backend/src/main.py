@@ -17,6 +17,7 @@ from src.queue.queue_routes import create_queue_router
 from src.api.deployments import router as deployments_router
 from src.api.config import router as config_router
 from src.api.incidents import router as incidents_router
+from src.relay_routes import router as relay_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,6 +58,7 @@ app.include_router(agent_router, prefix="/api", tags=["agents"])
 app.include_router(deployments_router, prefix="/api", tags=["deployments"])
 app.include_router(config_router, prefix="/api", tags=["config"])
 app.include_router(incidents_router, prefix="/api", tags=["incidents"])
+app.include_router(relay_router, prefix="/api", tags=["relay"])  # ✅ NET ZERO Relay routes
 queue_router = create_queue_router(queue_store)
 app.include_router(queue_router)
 
