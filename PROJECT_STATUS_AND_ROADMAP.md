@@ -2,7 +2,7 @@
 
 **Last Updated**: November 13, 2025  
 **Current Phase**: NET ZERO Architecture Implementation (Phase 1) - 100% Complete ✅  
-**Next Phase**: MVP Dashboard Frontend (Phase 1) - Ready to Start 🚀
+**Next Phase**: MVP Dashboard Frontend (Phase 1) - Critical Fixes Required 🔴
 
 ---
 
@@ -44,37 +44,40 @@
 
 ---
 
-### Phase 1B: MVP Dashboard Frontend 🚀 READY TO START
+### Phase 1B: MVP Dashboard Frontend 🔴 CRITICAL FIXES REQUIRED
 
-**What Needs to Be Built** (Tasks 11-20):
-1. Relay routes integration in FastAPI
-2. Pytest fixtures and async support
-3. Azure Event Grid client (Phase 2)
-4. GCP Pub/Sub client (Phase 2)
-5. Orchestration chain tests
-6. **Dashboard frontend (Priority)**:
-   - API clients (dashboard.ts, logs.ts)
-   - State management (CodeUChain chains)
-   - Components (StatusCard, LogViewer, Timeline, etc.)
-   - Pages (overview, jobs, deployments, agents, settings)
-   - E2E tests
-7. Backend integration
-8. Full test validation
-9. Deployment templates
-10. Documentation
+**API Alignment Audit Results** (November 13, 2025):
+- 🔴 **Overall Status**: Frontend is NOT aligned with backend - only 15% of endpoints correctly called
+- 🔴 **Backend Endpoints**: 53 total REST routes defined
+- 🔴 **Frontend Coverage**: 26 API functions implemented, but only 8 call correct endpoints
+- 🔴 **Critical Gaps**: Queue system (12 endpoints), Relay system (4 endpoints), Agent prefix mismatch
+- 🔴 **Impact**: MVP dashboard will fail on agent operations, queue management, relay setup, metrics
 
-**Timeline**: 2-3 weeks for MVP dashboard
+**What Was Built** (Tasks 11-20 - Partially Complete):
+- ✅ **API Clients**: 6 files created (dashboard.ts, jobs.ts, deployments.ts, agents.ts, logs.ts, metrics.ts)
+- ✅ **CodeUChain Chains**: 4 chains implemented (jobs.ts, dashboard.ts, deployments.ts, agents.ts)
+- ✅ **Dashboard Components**: StatusCard, RefreshSlider, RealTimeStatusBadge, LogViewer
+- ✅ **Dashboard Pages**: Overview, jobs, deployments, agents, settings pages created
+- ✅ **Demo Mode**: Offline development support implemented
+- 🔴 **Critical Issues**: Agent endpoints use wrong prefix, queue/relay systems missing, metrics endpoints wrong
 
-**Architecture**:
-```
-Frontend Pages
-    ↓
-CodeUChain Chains (state management)
-    ↓
-Typed API Clients
-    ↓
-Existing FastAPI Backend
-```
+**Files Created**:
+- 6 API client files (343 lines total)
+- 4 CodeUChain chain files (200+ lines)
+- 5 dashboard page components
+- 10+ reusable components
+
+**LOC**: ~2,000 lines of frontend code (incomplete)
+
+**Key Issues Identified**:
+- **Agent Endpoints**: All 9 functions call `/api/dashboard/agents/*` instead of `/api/agents/*` (404 errors)
+- **Queue System**: Completely missing - no way for agents to claim jobs (critical for orchestration)
+- **Relay System**: Completely missing - no NET ZERO relay registration UI
+- **Metrics Endpoints**: Frontend calls `/api/metrics/*` but backend has `/api/dashboard/summary`
+- **Jobs Endpoints**: 6+ functions call non-existent endpoints (delete, retry, cancel, stats, bulk operations)
+- **Deployments Endpoints**: Missing staging/production workflow endpoints
+
+**Audit Document**: See `FRONTEND_API_COVERAGE_AUDIT.md` for complete 600-line analysis
 
 ---
 
@@ -95,35 +98,36 @@ Existing FastAPI Backend
 | 9 | Copilot instructions | ✅ | 1 modified | 17KB |
 | 10 | Test suite | ✅ | 2 created | 981 |
 
-### ⏳ IN PROGRESS / READY (16 Tasks)
+### 🔴 BLOCKED / CRITICAL FIXES NEEDED (16 Tasks)
 
-#### Immediate Priority (Next 2 Days)
+#### Immediate Priority - Fix API Alignment (Next 2 Days)
 
-| # | Task | Effort | Blocking | Dependencies |
-|---|------|--------|----------|--------------|
-| 11 | Register relay routes in FastAPI | 1hr | Yes | Task 7 complete ✅ |
-| 12 | Pytest fixtures & async support | 2hr | Yes | Task 10 complete ✅ |
-| 16 | Build MVP Dashboard frontend | 40hr | No | Tasks 11-12 |
-| 17 | Dashboard state management | 20hr | No | Task 16 |
-| 18 | Dashboard components | 24hr | No | Task 16 |
-| 19 | E2E tests for dashboard | 16hr | No | Tasks 16-18 |
+| # | Task | Effort | Blocking | Dependencies | Status |
+|---|------|--------|----------|--------------|--------|
+| 11 | Register relay routes in FastAPI | 1hr | Yes | Task 7 complete ✅ | ⏳ Ready |
+| 12 | Pytest fixtures & async support | 2hr | Yes | Task 10 complete ✅ | ⏳ Ready |
+| **API Alignment Fixes** | | | | | |
+| 13 | Fix agent endpoint prefixes | 1hr | Yes | - | 🔴 Critical |
+| 14 | Fix metrics endpoint calls | 30min | Yes | - | 🔴 Critical |
+| 15 | Implement queue API client | 4hr | Yes | - | 🔴 Critical |
+| 16 | Implement relay API client | 4hr | Yes | - | 🔴 Critical |
+| 17 | Add missing agent lifecycle functions | 1hr | Yes | Task 13 | 🔴 Critical |
+| 18 | Add deployment workflow endpoints | 2hr | No | - | ⚠️ High |
+| 19 | Remove non-existent job endpoints | 2hr | No | - | ⚠️ High |
+| 20 | Verify logs endpoint exists | 30min | No | - | ⚠️ Medium |
 
-#### Phase 2 (Azure/GCP, Advanced Features)
+#### Phase 2 - Complete MVP Dashboard (After Fixes)
 
 | # | Task | Effort | Priority | Notes |
 |---|------|--------|----------|-------|
-| 13 | Azure Event Grid client | 8hr | Medium | Phase 2 |
-| 14 | GCP Pub/Sub client | 8hr | Medium | Phase 2 |
-| 15 | Orchestration chain tests | 6hr | High | End-to-end validation |
-| 20 | Backend integration | 4hr | High | Verify all wired up |
-| 21 | Full test validation | 6hr | High | Security audit |
-| 22 | Deployment templates | 10hr | Medium | Docker, K8s, Terraform |
-| 23 | Operational docs | 8hr | Medium | Guides, troubleshooting |
-| 24 | Security audit | 12hr | High | Penetration test |
-| 25 | Performance optimization | 8hr | Medium | Benchmarking |
-| 26 | Phase 2 roadmap | 4hr | Low | Plan WebSockets, AI, etc. |
+| 21 | Dashboard state management | 20hr | High | CodeUChain chains |
+| 22 | Dashboard components | 24hr | High | StatusCard, LogViewer, Timeline |
+| 23 | E2E tests for dashboard | 16hr | High | Cypress workflows |
+| 24 | Backend integration | 4hr | High | Verify all wired up |
+| 25 | Full test validation | 6hr | High | Security audit |
+| 26 | Deployment templates | 10hr | Medium | Docker, K8s, Terraform |
 
-**Total Remaining Effort**: ~127 hours (3-4 weeks with full-time focus)
+**Total Remaining Effort**: ~127 hours + **15-18 hours critical fixes** = ~142-145 hours (4-5 weeks)
 
 ---
 
@@ -141,7 +145,7 @@ Existing FastAPI Backend
 
 ### 3. Config-Driven Multi-Cloud
 - **Decision**: Factory pattern for queue providers (AWS/Azure/GCP)
-- **Rationale**: Add new cloud providers via config only, no code changes
+- **Rationale**: Add cloud providers via config only, no code changes
 - **Impact**: Extensible without code rewrites
 
 ### 4. Three-Layer Testing
@@ -160,6 +164,7 @@ Existing FastAPI Backend
 │  ├─ Components: StatusCard, LogViewer, Timeline      │
 │  ├─ Chains: useDashboard, useJobs, useDeployments    │
 │  └─ Hooks: useRealTime (polling), usePreferences     │
+│  🔴 ISSUES: Wrong endpoints, missing queue/relay     │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -168,7 +173,8 @@ Existing FastAPI Backend
 │  ├─ deployments.ts: fetch, rollback                  │
 │  ├─ agents.ts: fetch, drain, scale                   │
 │  ├─ dashboard.ts: summary metrics                     │
-│  └─ logs.ts: job logs fetching                        │
+│  ├─ logs.ts: job logs fetching                        │
+│  🔴 ISSUES: Wrong prefixes, non-existent endpoints   │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -177,7 +183,7 @@ Existing FastAPI Backend
 │  ├─ Chains: JobCreation, DeploymentLifecycle, etc.   │
 │  ├─ Orchestration: RelayOrchestrationChain           │
 │  ├─ Relay Routes: Registration, Heartbeat            │
-│  └─ Queue Integration: AWS SQS, Azure, GCP (stub)    │
+│  ├─ Queue Integration: AWS SQS, Azure, GCP (stub)    │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -240,54 +246,57 @@ Existing FastAPI Backend
 
 ## 🚀 Next Steps (Priority Order)
 
-### Week 1 (Nov 13-17)
-1. **Register relay routes** (Task 11) - 1hr
-   - Add `/api/relays/register`, `/api/relays/heartbeat` to main.py
-   - Verify imports, logging, error handling
-   - Run registration endpoint tests
+### Week 1 (Nov 13-17) - Critical Fixes
+1. **Fix agent endpoint prefixes** (1hr)
+   - Change all `/api/dashboard/agents` → `/api/agents`
+   - Change all `/api/dashboard/agent-pools` → `/api/agents/pools`
 
-2. **Pytest setup** (Task 12) - 2hr
+2. **Fix metrics endpoints** (30min)
+   - Change `/api/metrics/dashboard/` calls to use `/api/dashboard/summary`
+
+3. **Implement queue API client** (4hr)
+   - Create `src/lib/api/queue.ts` with enqueue, claim, start, complete, stats functions
+   - Create `src/lib/chains/queue.ts` for state management
+
+4. **Implement relay API client** (4hr)
+   - Create `src/lib/api/relay.ts` with register, heartbeat, list functions
+   - Create relay registration page and webhook config page
+
+5. **Add missing agent lifecycle functions** (1hr)
+   - Add `registerAgent()`, `heartbeatAgent()`, `deregisterAgent()`, `getHealthyAgents()`
+
+6. **Register relay routes in FastAPI** (1hr)
+   - Add `/api/relays/register`, `/api/relays/heartbeat` to main.py
+
+7. **Pytest setup** (2hr)
    - Create conftest.py with async fixtures
    - Add mock queue client fixtures
-   - Update pytest.ini for asyncio
 
-3. **Start dashboard frontend** (Task 16) - 40hr
-   - Create API clients (dashboard.ts, logs.ts)
-   - Create CodeUChain chains (useDashboard, useRealTime)
-   - Build StatusCard, MetricsGrid components
-   - Build Dashboard overview page
-   - Build Settings page with refresh slider
+### Week 2 (Nov 20-24) - Complete MVP Dashboard
+8. **Dashboard state management** (20hr)
+   - Fix CodeUChain chains to use correct API endpoints
+   - Implement useDashboard, useRealTime hooks
 
-### Week 2 (Nov 20-24)
-4. **Dashboard pages** (Task 18) - 24hr
-   - Jobs page with LogViewer and inline logs
-   - Deployments page with Timeline and rollback
-   - Agents page with PoolHealthCard and actions
-   - Responsive design (mobile, tablet, desktop)
+9. **Dashboard components** (24hr)
+   - Build StatusCard, MetricsGrid, LogViewer, Timeline components
+   - Fix LogViewer hydration warnings
 
-5. **E2E tests** (Task 19) - 16hr
-   - Navigate between pages
-   - Create job, verify in table
-   - Expand logs, verify content
-   - Filter, sort, paginate
-   - Toggle real-time slider
-   - Mobile responsiveness
+10. **E2E tests** (16hr)
+    - Cypress tests for dashboard navigation, interactions, real-time updates
 
-### Week 3 (Nov 27-Dec 1)
-6. **Backend integration** (Task 20) - 4hr
-   - Wire up all relay routes
-   - Verify queue polling works
-   - Test relay registration end-to-end
+### Week 3 (Nov 27-Dec 1) - Polish & Deploy
+11. **Backend integration** (4hr)
+    - Wire up all relay routes
+    - Verify queue polling works
 
-7. **Full validation** (Task 21) - 6hr
-   - Run complete test suite
-   - Security audit (grep for secrets)
-   - Performance benchmarks
+12. **Full validation** (6hr)
+    - Run complete test suite
+    - Security audit (grep for secrets)
 
-8. **Deployment templates** (Task 22) - 10hr
-   - Docker image for relay
-   - Kubernetes manifests
-   - Terraform for AWS infrastructure
+13. **Deployment templates** (10hr)
+    - Docker image for relay
+    - Kubernetes manifests
+    - Terraform for AWS infrastructure
 
 ---
 
@@ -300,6 +309,7 @@ Existing FastAPI Backend
 | Example Config | ✅ Complete | config/webhooks/tools/github-net-zero.yaml |
 | Test Suite | ✅ Complete | backend/tests/unit/test_net_zero_security.py |
 | Integration Tests | ✅ Complete | backend/tests/integration/test_relay_integration.py |
+| **API Alignment Audit** | ✅ Complete | FRONTEND_API_COVERAGE_AUDIT.md |
 | Dashboard Plan | ✅ Complete | docs/MVP_DASHBOARD_IMPLEMENTATION.md |
 | API Reference | ⏳ Pending | docs/api-reference.md |
 | Deployment Guide | ⏳ Pending | docs/deployment-guide.md |
@@ -319,7 +329,8 @@ Existing FastAPI Backend
 - ✅ API key security (hashed)
 - ✅ Comprehensive test coverage (70+ tests)
 
-### Phase 1B (MVP Dashboard) - IN PROGRESS
+### Phase 1B (MVP Dashboard) - 🔴 CRITICAL FIXES REQUIRED
+- [ ] **API Alignment**: Fix all endpoint mismatches (15-18 hours)
 - [ ] Dashboard overview with job/deployment/agent counts
 - [ ] Jobs page with inline log viewer
 - [ ] Deployments page with timeline and rollback
@@ -363,6 +374,12 @@ Existing FastAPI Backend
 4. **Validated**: JSON schema enforces correctness
 5. **Multi-environment**: Dev, staging, prod configs easily managed
 
+### Critical Lesson: API Drift Prevention
+1. **Parallel development risk**: Frontend and backend developed separately led to 85% misalignment
+2. **Single source of truth**: Backend API routes must be the source of truth
+3. **Continuous validation**: Automated API alignment checks needed in CI/CD
+4. **Contract-first development**: Define API contracts before implementation
+
 ---
 
 ## 📞 Contact & Questions
@@ -375,6 +392,7 @@ Existing FastAPI Backend
 
 ---
 
-**Status**: Phase 1A Complete, Phase 1B Ready to Start  
-**Next Milestone**: MVP Dashboard Frontend (2-3 weeks)  
-**Go time.** 🚀
+**Status**: Phase 1A Complete, Phase 1B Critical Fixes Required  
+**Next Milestone**: API Alignment Fixes (1-2 weeks) → MVP Dashboard (2-3 weeks)  
+**Total Effort Remaining**: 142-145 hours (4-5 weeks)  
+**Blocker**: Frontend-backend API misalignment must be resolved first 🚨
