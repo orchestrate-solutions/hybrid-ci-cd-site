@@ -337,24 +337,138 @@ Priority order for maximum business value:
 
 ### Phase 2B: NET ZERO Frontend - Tier 2 (Week 5-6: 24 hours)
 
-Advanced operational visibility:
+**Advanced operational visibility and monitoring**
 
-- Relay Health Dashboard (4 hours)
-- Queue Metrics page (6 hours)
-- Webhook Event Log (4 hours)
-- Audit Trail page (4 hours)
-- Alert Configuration (6 hours)
+| # | Task | Effort | LOC | Tests | Status |
+|---|------|--------|-----|-------|--------|
+| **2B.1** | Relay Health Dashboard | 4hr | 800 | 25 | ⏰ Next |
+| **2B.2** | Queue Metrics Page | 6hr | 1,200 | 30 | ⏰ Next |
+| **2B.3** | Webhook Event Log | 4hr | 900 | 25 | ⏰ Next |
+| **2B.4** | Audit Trail Page | 4hr | 850 | 25 | ⏰ Next |
+| **2B.5** | Alert Configuration | 6hr | 1,250 | 30 | ⏰ Next |
+| **TOTAL** | **5 pages** | **24hr** | **5,000+** | **135+** | **Ready** |
+
+#### 2B.1: Relay Health Dashboard (4hr, 800 LOC, 25 tests)
+Real-time monitoring of deployed relay instances across regions
+- RelayHealthCard: status/uptime/%/latency per relay
+- RelayMetricsChart: time-series (throughput, errors, latency)
+- RegionHealthMap: geographic distribution, drill-down
+- Features: uptime tracking (24h/7d/30d), response time trends, error rate, auto-scaling suggestions
+
+#### 2B.2: Queue Metrics Page (6hr, 1,200 LOC, 30 tests)
+Performance analytics and queue throughput visibility
+- QueueDepthCard: priority breakdown (CRITICAL/HIGH/NORMAL/LOW)
+- MessageAgeChart: percentile distribution, p50/p95/p99 latency
+- ThroughputChart: real-time msgs/sec, historical trends
+- DLQMonitor: dead letter queue stats, retry tracking
+- Features: queue warnings/limits, CSV export, 24h/7d/30d history
+
+#### 2B.3: Webhook Event Log (4hr, 900 LOC, 25 tests)
+Debug webhook delivery issues and view event history
+- WebhookEventTable: searchable, sortable, paginated events
+- EventDetailsModal: timestamp, payload hash, delivery status
+- StatusBadge: success/failed/retrying indicators
+- PayloadViewer: sanitized JSON preview (no secrets)
+- Features: signature verification, retry history, date range filters, export
+
+#### 2B.4: Audit Trail Page (4hr, 850 LOC, 25 tests)
+Compliance & forensics: who changed what and when
+- AuditTable: immutable change log (user, action, timestamp, resource)
+- ChangeDetailsModal: before/after values (sensitive redacted)
+- ActionBadge: create/update/delete/approve/deny
+- SensitivityIndicator: high/medium/low risk changes
+- Features: search by resource ID, sensitive change alerts, filter by date/user
+
+#### 2B.5: Alert Configuration (6hr, 1,250 LOC, 30 tests)
+Setup notifications for operational alerts
+- AlertRuleBuilder: threshold-based rule creation/editing
+- AlertTemplateGallery: pre-built templates (high queue depth, relay down, DLQ backlog)
+- NotificationChannelForm: email, Slack, PagerDuty, webhook setup
+- AlertHistoryTable: past triggered alerts with timestamps
+- QuietHoursScheduler: snooze windows, auto-disable during maintenance
+- Features: severity levels (critical/warning/info), test delivery, deduplication
+
+**API Endpoints** (TBD):
+- `/api/relays/health` - relay metrics per instance
+- `/api/queue/metrics` - queue depth, age, throughput
+- `/api/webhooks/events` - event history with filters
+- `/api/audit/logs` - change tracking by resource
+- `/api/alerts/rules` - CRUD alert rules
+
+**Storybook Stories** (25 total):
+- 2B.1: 5 stories (healthy, degraded, offline, multiple relays, empty)
+- 2B.2: 5 stories (healthy queue, high backlog, DLQ errors, empty, live)
+- 2B.3: 5 stories (success, failed, retry history, empty, search)
+- 2B.4: 5 stories (config changes, sensitive, user actions, filters, empty)
+- 2B.5: 6 stories (empty, multiple rules, editor, channels, history, test)
 
 **Estimated Completion**: Week of December 4 ✅
 
 ### Phase 2C: NET ZERO Frontend - Tier 3 (Week 7-8: 32 hours)
 
-Optional advanced features:
+**Optional advanced enterprise features**
 
-- Relay Auto-Deployment wizard (12 hours)
-- Routing Rules Builder (10 hours)
-- Queue Replication (6 hours)
-- Performance Tuning (4 hours)
+| # | Task | Effort | LOC | Tests | Priority |
+|---|------|--------|-----|-------|----------|
+| **2C.1** | Relay Auto-Deploy Wizard | 12hr | 1,800 | 40 | 🟢 Optional |
+| **2C.2** | Routing Rules Builder | 10hr | 1,500 | 35 | 🟢 Optional |
+| **2C.3** | Queue Replication | 6hr | 1,000 | 25 | 🟢 Optional |
+| **2C.4** | Performance Tuning | 4hr | 700 | 15 | 🟢 Optional |
+| **TOTAL** | **4 features** | **32hr** | **5,000+** | **115+** | **Contingency** |
+
+#### 2C.1: Relay Auto-Deployment Wizard (12hr, 1,800 LOC, 40 tests)
+Guided setup for deploying relays to user infrastructure
+- WizardStepper: 7-step multi-step form
+- ProviderSelector: AWS/Azure/GCP cloud choice cards
+- InfrastructureTypeSelector: compute service options (EC2/Lambda, AKS, Cloud Run)
+- RegionSelector: map or dropdown for deployment location
+- TerraformPreview: read-only code editor showing generated config
+- DeploymentProgress: real-time status + logs during deployment
+- ValidationChecklist: post-deploy health checks (relay online, API accessible)
+- Steps: (1) Cloud + region, (2) Infrastructure type, (3) Sizing & scaling, (4) Networking, (5) Config review, (6) Deploy, (7) Validate
+- Features: auto-generate Terraform, one-click deploy, API key generation, post-deploy validation
+
+#### 2C.2: Routing Rules Builder (10hr, 1,500 LOC, 35 tests)
+Visual editor for complex webhook routing rules
+- RuleBuilder: drag-and-drop interface for complex rules
+- ConditionGroup: AND/OR/NOT logic gates
+- EventTypeFilter: filter by provider (GitHub, GitLab, Jenkins, AWS)
+- ConditionRow: left/operator/right expression builder
+- ActionSelector: route to queue, webhook, or custom script
+- RulePriority: drag-to-reorder rules (top-to-bottom evaluation)
+- TestRuleModal: simulate webhook, see matching results
+- RuleTemplateGallery: common patterns pre-built
+- Features: dry-run mode, payload field matching, path matching, complex conditions
+
+#### 2C.3: Queue Replication (6hr, 1,000 LOC, 25 tests)
+Disaster recovery via cross-region queue replication
+- ReplicationConfigForm: target region selection, mode (sync/async)
+- FailoverPolicyEditor: automatic/manual/hybrid failover
+- ReplicationStatusDashboard: replication lag monitoring, consistency verification
+- FailoverSimulator: test failover without impacting production
+- ReplicationHealthMap: regions with status indicators
+- Features: data consistency checks, per-message replication status, lag alerts
+
+#### 2C.4: Performance Tuning Guide (4hr, 700 LOC, 15 tests)
+Interactive recommendations for optimizing system performance
+- PerformanceMetricsView: queue depth, latency, throughput dashboard
+- RecommendationsCard: each AI/heuristic suggestion
+- ImpactEstimator: projected improvement metrics for each recommendation
+- ApplyRecommendationButton: one-click apply changes
+- BeforeAfterComparison: side-by-side metrics comparison
+- Features: queue sizing suggestions, relay scaling, polling interval optimization, batch tuning
+
+**API Endpoints** (TBD):
+- `/api/relays/wizard/*` - terraform generation, deployment, validation
+- `/api/webhooks/rules/*` - CRUD rules, template library, test matching
+- `/api/queue/replication/*` - config, status, failover, lag
+- `/api/performance/*` - metrics, recommendations, projections
+
+**Storybook Stories** (21 total):
+- 2C.1: 6 stories (provider select, infrastructure, region, config, deploy progress, complete)
+- 2C.2: 6 stories (simple rule, complex rule, multiple conditions, action, test, empty)
+- 2C.3: 4 stories (enabled, lag high, failover scenario, complete)
+- 2C.4: 4 stories (healthy, suboptimal, overprovisioned, before/after)
 
 **Estimated Completion**: Week of December 18 ✅
 
@@ -756,3 +870,413 @@ When creating new components, follow this checklist:
 **Phase 2 Start**: Week of Nov 27 (NET ZERO Frontend - Relay, Webhook, Queue, Vault pages)  
 **Total Effort Remaining**: 116 hours (35 current + 81 Phase 2) = 3-4 weeks  
 **Build Status**: Dashboard pages compiling cleanly ✅ | Home page Grid issue pre-existing
+---
+
+## 📋 Phase 2B: Tier 2 - Advanced Pages (Detailed Breakdown)
+
+### 2B.1: Relay Health Dashboard (4 hours, 500+ LOC)
+**Purpose**: Monitor deployed relay instances across all regions/environments
+
+**Features**:
+- [ ] Real-time relay status (online/offline/degraded)
+- [ ] Uptime percentage (24h, 7d, 30d)
+- [ ] Response time trends (latency graphs)
+- [ ] Error rate monitoring (last 24h)
+- [ ] Message throughput (msgs/sec)
+- [ ] Region/environment breakdown
+- [ ] Alert history per relay
+- [ ] Auto-scaling recommendations
+
+**Components**:
+- RelayHealthCard (status, uptime %, latency)
+- RelayMetricsChart (time-series: throughput, errors, latency)
+- RelayStatusGrid (list all relays with drill-down)
+- RegionHealthMap (geographic distribution)
+
+**API Endpoints** (TBD - to be defined):
+- GET `/api/relays/health` → list all relays with health metrics
+- GET `/api/relays/{relay_id}/metrics` → historical metrics (time range)
+- GET `/api/relays/{relay_id}/alerts` → alert history for relay
+- GET `/api/relays/recommendations` → scaling/optimization suggestions
+
+**Storybook Stories** (5):
+- Healthy relay (100% uptime)
+- Degraded relay (95% uptime, high latency)
+- Failed relay (offline)
+- Multiple relays grid
+- Empty (no relays deployed)
+
+**Test Coverage**: 25+ test cases (API tests, hook tests, component tests, page tests)
+
+---
+
+### 2B.2: Queue Metrics Page (6 hours, 700+ LOC)
+**Purpose**: Performance analytics and queue throughput visibility
+
+**Features**:
+- [ ] Queue depth by priority (CRITICAL/HIGH/NORMAL/LOW)
+- [ ] Message age distribution (percentile chart)
+- [ ] Processing latency (p50, p95, p99)
+- [ ] Throughput over time (msgs/sec)
+- [ ] Dead letter queue (DLQ) monitoring
+- [ ] Queue size warnings/limits
+- [ ] Historical trends (24h, 7d, 30d)
+- [ ] Export metrics to CSV/JSON
+
+**Components**:
+- QueueDepthCard (by priority, donut chart)
+- MessageAgeChart (histogram with percentiles)
+- ThroughputChart (line chart, real-time)
+- DLQMonitor (failed messages, retry stats)
+- QueueHealthIndicator (green/yellow/red)
+
+**API Endpoints** (TBD):
+- GET `/api/queue/metrics` → current queue state (depth, age, throughput)
+- GET `/api/queue/metrics/history` → historical metrics (time range, interval)
+- GET `/api/queue/dlq` → dead letter queue stats
+- POST `/api/queue/dlq/{message_id}/retry` → retry failed message
+
+**Storybook Stories** (5):
+- Healthy queue (balanced depth, low age)
+- High backlog (deep queue, old messages)
+- DLQ has errors (retry scenarios)
+- Empty queue
+- Real-time updates (live polling)
+
+**Test Coverage**: 30+ test cases
+
+---
+
+### 2B.3: Webhook Event Log (4 hours, 600+ LOC)
+**Purpose**: Debug webhook delivery issues and view event history
+
+**Features**:
+- [ ] Searchable event log (by repo, event type, status)
+- [ ] Event details modal (timestamp, payload hash, status)
+- [ ] Delivery status (success/retry/failed)
+- [ ] Retry history (manual + auto retries)
+- [ ] Payload preview (sanitized, no secrets)
+- [ ] Signature verification indicator
+- [ ] Filter by date range, status, provider
+- [ ] Export event log
+
+**Components**:
+- WebhookEventTable (searchable, sortable, paginated)
+- EventDetailsModal (full event info, retry button)
+- StatusBadge (success/failed/retrying)
+- PayloadViewer (read-only JSON preview)
+- DeliveryTimeline (timestamps for retries)
+
+**API Endpoints** (TBD):
+- GET `/api/webhooks/events` → list events with filters
+- GET `/api/webhooks/events/{event_id}` → event details
+- POST `/api/webhooks/events/{event_id}/retry` → manual retry
+- GET `/api/webhooks/events/{event_id}/payload` → payload preview (hash only)
+
+**Storybook Stories** (5):
+- Successful deliveries
+- Failed delivery (with retry options)
+- Event with retry history
+- Empty event log
+- Filter/search results
+
+**Test Coverage**: 28+ test cases
+
+---
+
+### 2B.4: Audit Trail Page (4 hours, 600+ LOC)
+**Purpose**: Compliance & forensics: who changed what and when
+
+**Features**:
+- [ ] Immutable change log (user, action, timestamp, resource)
+- [ ] Filter by user, action, resource type, date range
+- [ ] Change details (before/after values for sensitive fields redacted)
+- [ ] Approval workflow indicators (if applicable)
+- [ ] Export audit log (for compliance reporting)
+- [ ] Search by resource ID
+- [ ] Alert on sensitive changes (vault config, relay deletion, etc.)
+
+**Components**:
+- AuditTable (sortable, filterable, paginated)
+- ChangeDetailsModal (before/after, user info)
+- ActionBadge (create/update/delete/approve/deny)
+- SensitivityIndicator (high/medium/low risk change)
+- TimelineView (changes over time)
+
+**API Endpoints** (TBD):
+- GET `/api/audit/logs` → list changes with filters
+- GET `/api/audit/logs/{change_id}` → change details
+- GET `/api/audit/logs/user/{user_id}` → changes by user
+- GET `/api/audit/logs/resource/{resource_id}` → changes to resource
+
+**Storybook Stories** (5):
+- Configuration changes (relay added, webhook created)
+- Sensitive changes (vault config updated)
+- User admin actions (user added to team)
+- Filter results (by user/action/date)
+- Empty audit trail
+
+**Test Coverage**: 28+ test cases
+
+---
+
+### 2B.5: Alert Configuration (6 hours, 800+ LOC)
+**Purpose**: Setup notifications for operational alerts
+
+**Features**:
+- [ ] Alert rules builder (threshold-based)
+- [ ] Alert templates (pre-built: high queue depth, relay down, DLQ backlog, etc.)
+- [ ] Notification channels (email, Slack, PagerDuty, webhook)
+- [ ] Severity levels (critical/warning/info)
+- [ ] Schedule/quiet hours (snooze alerts during maintenance)
+- [ ] Test alert delivery
+- [ ] Alert history (triggered alerts)
+- [ ] Alert deduplication (avoid duplicate notifications)
+
+**Components**:
+- AlertRuleBuilder (form to create/edit rules)
+- AlertTemplateGallery (pre-built templates)
+- NotificationChannelForm (email, Slack, PagerDuty setup)
+- AlertHistoryTable (past triggered alerts)
+- TestAlertButton (send test notification)
+- QuietHoursScheduler (snooze time windows)
+
+**API Endpoints** (TBD):
+- GET `/api/alerts/rules` → list alert rules
+- POST `/api/alerts/rules` → create new rule
+- PUT `/api/alerts/rules/{rule_id}` → update rule
+- DELETE `/api/alerts/rules/{rule_id}` → delete rule
+- POST `/api/alerts/test` → send test notification
+- GET `/api/alerts/history` → alert trigger history
+- POST `/api/alerts/acknowledge/{alert_id}` → acknowledge alert
+
+**Storybook Stories** (6):
+- Empty rules (no alerts configured)
+- Multiple rules (various types)
+- Rule editor (create new)
+- Notification channels (email, Slack, PagerDuty)
+- Alert history (triggered alerts)
+- Test alert sent confirmation
+
+**Test Coverage**: 35+ test cases
+
+---
+
+**Phase 2B Summary**:
+- **Total Effort**: 24 hours
+- **Total LOC**: 3,200+ (API tests + implementations + Storybook)
+- **Test Cases**: 150+ across all 5 pages
+- **Commits**: 5 (one per page, same TDD pattern)
+- **Timeline**: ~2 days at 260+ LOC/hour velocity
+
+---
+
+## 📋 Phase 2C: Tier 3 - Optional Advanced Features (Detailed Breakdown)
+
+### 2C.1: Relay Auto-Deployment Wizard (12 hours, 1,200+ LOC)
+**Purpose**: Guided setup for deploying relays to user infrastructure
+
+**Features**:
+- [ ] Step-by-step wizard (5-7 steps)
+- [ ] Cloud provider selection (AWS/Azure/GCP)
+- [ ] Infrastructure type selection (EC2/Lambda, AKS, Cloud Run, etc.)
+- [ ] Region/zone selection
+- [ ] Auto-generate Terraform code
+- [ ] Configuration preview
+- [ ] One-click deploy (executes Terraform)
+- [ ] Deployment progress tracking
+- [ ] Post-deploy validation (relay health check)
+- [ ] API key generation
+
+**Wizard Steps**:
+1. Cloud provider selection (AWS/Azure/GCP)
+2. Infrastructure type (compute service, container registry)
+3. Region/location selection
+4. Sizing & scaling (instance type, auto-scaling config)
+5. Networking (VPC, security groups, firewall rules)
+6. Configuration review (Terraform preview)
+7. Deploy & validate
+
+**Components**:
+- WizardStepper (multi-step form)
+- ProviderSelector (AWS/Azure/GCP cards with features)
+- InfrastructureTypeSelector (compute options)
+- RegionSelector (map-based or dropdown)
+- TerraformPreview (read-only code editor)
+- DeploymentProgress (status + logs)
+- ValidationChecklist (post-deploy checks)
+
+**API Endpoints** (TBD):
+- POST `/api/relays/wizard/validate-config` → validate infrastructure config
+- POST `/api/relays/wizard/generate-terraform` → generate Terraform code
+- POST `/api/relays/wizard/deploy` → execute Terraform deployment
+- GET `/api/relays/wizard/deploy/{deployment_id}/status` → deployment progress
+- POST `/api/relays/wizard/deploy/{deployment_id}/cancel` → cancel deployment
+
+**Storybook Stories** (6):
+- Step 1: Provider selection
+- Step 2: Infrastructure type
+- Step 3: Region selection
+- Step 4: Configuration review
+- Step 5: Terraform preview
+- Deployment in progress
+- Deployment complete
+
+**Test Coverage**: 40+ test cases
+
+---
+
+### 2C.2: Routing Rules Builder (10 hours, 1,000+ LOC)
+**Purpose**: Visual editor for complex webhook routing rules
+
+**Features**:
+- [ ] Rule builder with AND/OR/NOT logic
+- [ ] Event type filtering (by provider: GitHub, GitLab, Jenkins, etc.)
+- [ ] Condition builder (path matching, payload field matching)
+- [ ] Action assignment (route to specific queue, webhook, etc.)
+- [ ] Priority ordering (rules evaluated top-to-bottom)
+- [ ] Rule testing (simulate webhook, see which rules match)
+- [ ] Rule templates (common patterns pre-built)
+- [ ] Dry-run mode (test without applying)
+
+**Components**:
+- RuleBuilder (main form)
+- ConditionGroup (AND/OR/NOT logic gates)
+- EventTypeFilter (multi-select)
+- ConditionRow (left/operator/right expression builder)
+- ActionSelector (queue, webhook, script)
+- RulePriority (drag-to-reorder)
+- TestRuleModal (simulate webhook)
+- RuleTemplate Gallery
+
+**API Endpoints** (TBD):
+- GET `/api/webhooks/rules` → list routing rules
+- POST `/api/webhooks/rules` → create rule
+- PUT `/api/webhooks/rules/{rule_id}` → update rule
+- DELETE `/api/webhooks/rules/{rule_id}` → delete rule
+- POST `/api/webhooks/rules/test` → test rule matching (dry-run)
+- GET `/api/webhooks/rules/templates` → template library
+
+**Storybook Stories** (6):
+- Simple rule (single condition)
+- Complex rule (AND/OR/NOT)
+- Multiple conditions (3+ filters)
+- Rule with action assignment
+- Test rule (matching results)
+- Empty rules (no rules defined)
+
+**Test Coverage**: 35+ test cases
+
+---
+
+### 2C.3: Queue Replication (6 hours, 600+ LOC)
+**Purpose**: Disaster recovery via cross-region queue replication
+
+**Features**:
+- [ ] Configure replication targets (backup regions)
+- [ ] Replication mode (sync/async)
+- [ ] Failover policies (automatic/manual)
+- [ ] Replication lag monitoring
+- [ ] Data consistency verification
+- [ ] Replication status per message
+
+**Components**:
+- ReplicationConfigForm (target selection, mode)
+- FailoverPolicyEditor (automatic/manual/hybrid)
+- ReplicationStatusDashboard (lag, consistency)
+- FailoverSimulator (test failover)
+- ReplicationHealthMap (regions with status)
+
+**API Endpoints** (TBD):
+- GET `/api/queue/replication/config` → get replication setup
+- POST `/api/queue/replication/config` → configure replication
+- GET `/api/queue/replication/status` → replication health
+- POST `/api/queue/replication/failover` → trigger failover
+- GET `/api/queue/replication/lag` → monitor lag
+
+**Storybook Stories** (4):
+- Replication enabled (normal operation)
+- Replication lag high (warning)
+- Failover scenario (manual trigger)
+- Failover complete (recovery state)
+
+**Test Coverage**: 20+ test cases
+
+---
+
+### 2C.4: Performance Tuning Guide (4 hours, 400+ LOC)
+**Purpose**: Interactive recommendations for optimizing system performance
+
+**Features**:
+- [ ] Performance metrics dashboard (queue depth, latency, throughput)
+- [ ] AI/heuristic-based recommendations
+- [ ] Queue sizing recommendations (based on throughput)
+- [ ] Relay scaling suggestions (based on load)
+- [ ] Polling interval optimization
+- [ ] Batch size tuning
+- [ ] One-click apply recommendations
+- [ ] Before/after comparison
+
+**Components**:
+- PerformanceMetricsView (current stats)
+- RecommendationsCard (each recommendation)
+- ImpactEstimator (projected improvement)
+- ApplyRecommendationButton (one-click apply)
+- BeforeAfterComparison (metrics before/after)
+
+**API Endpoints** (TBD):
+- GET `/api/performance/metrics` → current performance
+- GET `/api/performance/recommendations` → AI suggestions
+- POST `/api/performance/recommendations/{rec_id}/apply` → apply recommendation
+- GET `/api/performance/projections/{rec_id}` → impact estimate
+
+**Storybook Stories** (4):
+- Healthy performance (no recommendations)
+- Suboptimal queue size (recommendation to increase)
+- Overprovisioned (recommendation to reduce)
+- Applied recommendations (before/after)
+
+**Test Coverage**: 15+ test cases
+
+---
+
+**Phase 2C Summary**:
+- **Total Effort**: 32 hours (optional)
+- **Total LOC**: 3,200+ (wizard + builder + replication + tuning)
+- **Test Cases**: 110+ across all 4 features
+- **Commits**: 4 (one per feature)
+- **Timeline**: ~2 days at 260+ LOC/hour velocity (if implemented)
+- **Notes**: Consider only if business requires enterprise features
+
+---
+
+## 📊 Combined Phase 2 Summary
+
+| Phase | Tier | Features | Hours | LOC | Tests | Priority |
+|-------|------|----------|-------|-----|-------|----------|
+| **2A** | Tier 1 | Relay, Webhook, Queue, Vault, Architecture | 25 | 6,510+ | 135+ | 🔴 DONE ✅ |
+| **2B** | Tier 2 | Relay Health, Queue Metrics, Events, Audit, Alerts | 24 | 3,200+ | 150+ | 🔴 NEXT |
+| **2C** | Tier 3 | Wizard, Builder, Replication, Tuning | 32 | 3,200+ | 110+ | 🟢 Optional |
+| **Total** | - | 14 pages + 50+ components | 81 | 12,910+ | 395+ | - |
+
+---
+
+## �� Development Velocity Target
+
+**Based on Phase 2A Results**:
+- Sustained velocity: 260+ LOC/hour
+- TDD pattern: RED (80-100 LOC tests) + GREEN (400-500 LOC implementation)
+- Per-page time: 4-6 hours (API + hook + component + page + stories)
+- Commits per phase: 5 (one per page)
+- Quality: 21 test cases per 1,000 LOC
+
+**Phase 2B Estimate** (at this velocity):
+- 5 pages × 5 hours/page = 25 hours ≈ 1 day intensive + 1 day integration testing
+- Total: ~2 calendar days to complete
+
+**Phase 2C Estimate** (if implemented):
+- 4 features × 8 hours/feature = 32 hours ≈ 2-3 days intensive
+- Total: ~3 calendar days to complete
+
+---
+

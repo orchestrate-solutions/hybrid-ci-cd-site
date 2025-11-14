@@ -1,27 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { queueApi } from '../queue';
 
-describe('Queue API Client', () => {
+describe('queueApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
   });
 
   describe('getMetrics', () => {
-    it('should fetch queue metrics', async () => {
+    it('should fetch queue metrics successfully', async () => {
       const mockMetrics = {
-        total_queued: 42,
-        total_active: 5,
-        total_completed: 1000,
-        priority_breakdown: {
-          CRITICAL: 5,
-          HIGH: 10,
-          NORMAL: 25,
-          LOW: 2,
-        },
-        avg_wait_time_ms: 1250,
-        throughput_per_minute: 15.5,
-        dlq_count: 2,
+        total_depth: 1500,
+        critical_depth: 50,
+        high_depth: 200,
+        normal_depth: 800,
+        low_depth: 450,
+        avg_age_ms: 2500,
+        throughput_rps: 125.5,
+        error_rate: 0.02,
       };
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -31,9 +27,13 @@ describe('Queue API Client', () => {
 
       const result = await queueApi.getMetrics();
       expect(result).toEqual(mockMetrics);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/queue/metrics'),
+        expect.any(Object)
+      );
     });
 
-    it('should throw on fetch error', async () => {
+    it('should throw error on failed fetch', async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -43,82 +43,11 @@ describe('Queue API Client', () => {
     });
   });
 
-  describe('getQueueStats', () => {
-    it('should fetch queue statistics by priority', async () => {
-      const mockStats = [
-        { priority: 'CRITICAL', count: 5, oldest_age_ms: 45000 },
-        { priority: 'HIGH', count: 10, oldest_age_ms: 120000 },
-        { priority: 'NORMAL', count: 25, oldest_age_ms: 300000 },
-        { priority: 'LOW', count: 2, oldest_age_ms: 500000 },
-      ];
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockStats,
-      });
-
-      const result = await queueApi.getQueueStats();
-      expect(result).toEqual(mockStats);
-      expect(result).toHaveLength(4);
-    });
-  });
-
-  describe('getDeadLetterQueue', () => {
-    it('should fetch dead letter queue messages', async () => {
-      const mockDLQ = [
-        {
-          id: 'dlq-1',
-          original_job_id: 'job-123',
-          error: 'Max retries exceeded',
-          failed_at: new Date().toISOString(),
-          retry_count: 3,
-        },
-        {
-          id: 'dlq-2',
-          original_job_id: 'job-456',
-          error: 'Invalid payload',
-          failed_at: new Date().toISOString(),
-          retry_count: 1,
-        },
-      ];
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockDLQ,
-      });
-
-      const result = await queueApi.getDeadLetterQueue();
-      expect(result).toHaveLength(2);
-      expect(result[0].error).toBe('Max retries exceeded');
-    });
-  });
-
-  describe('getPriorityBreakdown', () => {
-    it('should fetch priority distribution', async () => {
-      const mockBreakdown = {
-        CRITICAL: { count: 5, percentage: 10 },
-        HIGH: { count: 10, percentage: 20 },
-        NORMAL: { count: 25, percentage: 50 },
-        LOW: { count: 10, percentage: 20 },
-      };
-
-      (global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockBreakdown,
-      });
-
-      const result = await queueApi.getPriorityBreakdown();
-      expect(result.CRITICAL.count).toBe(5);
-      expect(result.CRITICAL.percentage).toBe(10);
-    });
-  });
-
-  describe('getQueueHistory', () => {
-    it('should fetch historical queue data', async () => {
+  describe('getMetricsHistory', () => {
+    it('should fetch metrics history with time range', async () => {
       const mockHistory = [
-        { timestamp: Date.now() - 60000, queued: 42, active: 5 },
-        { timestamp: Date.now() - 120000, queued: 38, active: 6 },
-        { timestamp: Date.now() - 180000, queued: 45, active: 4 },
+        { timestamp: '2024-01-01T00:00:00Z', depth: 1500, throughput: 120, avg_age: 2400 },
+        { timestamp: '2024-01-01T01:00:00Z', depth: 1650, throughput: 130, avg_age: 2600 },
       ];
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -126,26 +55,141 @@ describe('Queue API Client', () => {
         json: async () => mockHistory,
       });
 
-      const result = await queueApi.getQueueHistory();
-      expect(result).toHaveLength(3);
+      const result = await queueApi.getMetricsHistory('24h', '5m');
+      expect(result).toEqual(mockHistory);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('timeRange=24h'),
+        expect.any(Object)
+      );
+    });
+
+    it('should support 7d and 30d time ranges', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
+      await queueApi.getMetricsHistory('7d', '1h');
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('timeRange=7d'),
+        expect.any(Object)
+      );
     });
   });
 
-  describe('requeueDLQMessage', () => {
-    it('should requeue a dead letter message', async () => {
-      const mockResult = { success: true, job_id: 'job-new-123' };
+  describe('getDepthByPriority', () => {
+    it('should fetch queue depth breakdown by priority', async () => {
+      const mockDepth = {
+        CRITICAL: 50,
+        HIGH: 200,
+        NORMAL: 800,
+        LOW: 450,
+        total: 1500,
+      };
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResult,
+        json: async () => mockDepth,
       });
 
-      const result = await queueApi.requeueDLQMessage('dlq-1');
-      expect(result.success).toBe(true);
+      const result = await queueApi.getDepthByPriority();
+      expect(result).toEqual(mockDepth);
+      expect(result.CRITICAL).toBe(50);
+    });
+  });
+
+  describe('getMessageAgeDistribution', () => {
+    it('should fetch message age percentiles', async () => {
+      const mockDistribution = {
+        p50: 1200,
+        p75: 1800,
+        p95: 3200,
+        p99: 5100,
+        max: 15000,
+      };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockDistribution,
+      });
+
+      const result = await queueApi.getMessageAgeDistribution();
+      expect(result).toEqual(mockDistribution);
+      expect(result.p99).toBe(5100);
+    });
+  });
+
+  describe('getThroughputHistory', () => {
+    it('should fetch throughput over time', async () => {
+      const mockThroughput = [
+        { timestamp: '2024-01-01T00:00:00Z', throughput_rps: 120 },
+        { timestamp: '2024-01-01T01:00:00Z', throughput_rps: 135 },
+      ];
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockThroughput,
+      });
+
+      const result = await queueApi.getThroughputHistory('24h');
+      expect(result).toEqual(mockThroughput);
+    });
+  });
+
+  describe('getDLQStats', () => {
+    it('should fetch dead letter queue statistics', async () => {
+      const mockDLQ = {
+        total_messages: 250,
+        failed_retries: 150,
+        max_retries_exceeded: 100,
+        oldest_message_age_ms: 86400000,
+        error_types: [
+          { type: 'timeout', count: 80 },
+          { type: 'invalid_payload', count: 70 },
+        ],
+      };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockDLQ,
+      });
+
+      const result = await queueApi.getDLQStats();
+      expect(result.total_messages).toBe(250);
+      expect(result.error_types).toHaveLength(2);
+    });
+  });
+
+  describe('retryDLQMessage', () => {
+    it('should retry a dead letter queue message', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      await queueApi.retryDLQMessage('msg-123');
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/queue/dlq/dlq-1/requeue'),
+        expect.stringContaining('/api/queue/dlq/msg-123/retry'),
         expect.objectContaining({ method: 'POST' })
       );
+    });
+  });
+
+  describe('getQueueWarnings', () => {
+    it('should fetch queue warnings', async () => {
+      const mockWarnings = [
+        { type: 'high_depth', severity: 'warning', message: 'Queue depth exceeds 50%' },
+        { type: 'old_messages', severity: 'critical', message: 'Messages older than 24h' },
+      ];
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockWarnings,
+      });
+
+      const result = await queueApi.getQueueWarnings();
+      expect(result).toHaveLength(2);
+      expect(result[1].severity).toBe('critical');
     });
   });
 });

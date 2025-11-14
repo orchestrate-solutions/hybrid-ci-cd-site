@@ -1,54 +1,50 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-// Types
 export interface QueueMetrics {
-  total_queued: number;
-  total_active: number;
-  total_completed: number;
-  priority_breakdown: {
-    CRITICAL: number;
-    HIGH: number;
-    NORMAL: number;
-    LOW: number;
-  };
-  avg_wait_time_ms: number;
-  throughput_per_minute: number;
-  dlq_count: number;
+  total_depth: number;
+  critical_depth: number;
+  high_depth: number;
+  normal_depth: number;
+  low_depth: number;
+  avg_age_ms: number;
+  throughput_rps: number;
+  error_rate: number;
 }
 
-export interface QueueStats {
-  priority: 'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW';
-  count: number;
-  oldest_age_ms: number;
+export interface QueueMetricsPoint {
+  timestamp: string;
+  depth: number;
+  throughput: number;
+  avg_age: number;
 }
 
-export interface DLQMessage {
-  id: string;
-  original_job_id: string;
-  error: string;
-  failed_at: string;
-  retry_count: number;
+export interface MessageAgeDistribution {
+  p50: number;
+  p75: number;
+  p95: number;
+  p99: number;
+  max: number;
 }
 
-export interface PriorityBreakdown {
-  [key: string]: {
-    count: number;
-    percentage: number;
-  };
+export interface ThroughputPoint {
+  timestamp: string;
+  throughput_rps: number;
 }
 
-export interface QueueHistoryPoint {
-  timestamp: number;
-  queued: number;
-  active: number;
+export interface DLQStats {
+  total_messages: number;
+  failed_retries: number;
+  max_retries_exceeded: number;
+  oldest_message_age_ms: number;
+  error_types: Array<{ type: string; count: number }>;
 }
 
-export interface RequeuResult {
-  success: boolean;
-  job_id: string;
+export interface QueueWarning {
+  type: string;
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
 }
 
-// API Client
 export const queueApi = {
   async getMetrics(): Promise<QueueMetrics> {
     const res = await fetch(`${BASE_URL}/api/queue/metrics`);
@@ -56,36 +52,57 @@ export const queueApi = {
     return res.json();
   },
 
-  async getQueueStats(): Promise<QueueStats[]> {
-    const res = await fetch(`${BASE_URL}/api/queue/stats`);
-    if (!res.ok) throw new Error(`Failed to fetch queue stats: ${res.status}`);
+  async getMetricsHistory(
+    timeRange: '24h' | '7d' | '30d' = '24h',
+    interval: '5m' | '1h' | '1d' = '1h'
+  ): Promise<QueueMetricsPoint[]> {
+    const res = await fetch(`${BASE_URL}/api/queue/metrics/history?timeRange=${timeRange}&interval=${interval}`);
+    if (!res.ok) throw new Error('Failed to fetch metrics history');
     return res.json();
   },
 
-  async getDeadLetterQueue(): Promise<DLQMessage[]> {
-    const res = await fetch(`${BASE_URL}/api/queue/dlq`);
-    if (!res.ok) throw new Error(`Failed to fetch DLQ: ${res.status}`);
+  async getDepthByPriority(): Promise<{
+    CRITICAL: number;
+    HIGH: number;
+    NORMAL: number;
+    LOW: number;
+    total: number;
+  }> {
+    const res = await fetch(`${BASE_URL}/api/queue/depth/priority`);
+    if (!res.ok) throw new Error('Failed to fetch priority breakdown');
     return res.json();
   },
 
-  async getPriorityBreakdown(): Promise<PriorityBreakdown> {
-    const res = await fetch(`${BASE_URL}/api/queue/priority-breakdown`);
-    if (!res.ok) throw new Error(`Failed to fetch priority breakdown: ${res.status}`);
+  async getMessageAgeDistribution(): Promise<MessageAgeDistribution> {
+    const res = await fetch(`${BASE_URL}/api/queue/message-age/distribution`);
+    if (!res.ok) throw new Error('Failed to fetch message age distribution');
     return res.json();
   },
 
-  async getQueueHistory(): Promise<QueueHistoryPoint[]> {
-    const res = await fetch(`${BASE_URL}/api/queue/history?limit=60`);
-    if (!res.ok) throw new Error(`Failed to fetch queue history: ${res.status}`);
+  async getThroughputHistory(timeRange: '24h' | '7d' | '30d' = '24h'): Promise<ThroughputPoint[]> {
+    const res = await fetch(`${BASE_URL}/api/queue/throughput/history?timeRange=${timeRange}`);
+    if (!res.ok) throw new Error('Failed to fetch throughput history');
     return res.json();
   },
 
-  async requeueDLQMessage(messageId: string): Promise<RequeuResult> {
-    const res = await fetch(`${BASE_URL}/api/queue/dlq/${messageId}/requeue`, {
+  async getDLQStats(): Promise<DLQStats> {
+    const res = await fetch(`${BASE_URL}/api/queue/dlq/stats`);
+    if (!res.ok) throw new Error('Failed to fetch DLQ stats');
+    return res.json();
+  },
+
+  async retryDLQMessage(messageId: string): Promise<{ success: boolean }> {
+    const res = await fetch(`${BASE_URL}/api/queue/dlq/${messageId}/retry`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
-    if (!res.ok) throw new Error(`Failed to requeue message: ${res.status}`);
+    if (!res.ok) throw new Error('Failed to retry DLQ message');
+    return res.json();
+  },
+
+  async getQueueWarnings(): Promise<QueueWarning[]> {
+    const res = await fetch(`${BASE_URL}/api/queue/warnings`);
+    if (!res.ok) throw new Error('Failed to fetch queue warnings');
     return res.json();
   },
 };
