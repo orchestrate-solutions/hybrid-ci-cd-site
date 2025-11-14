@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueueStatusCard } from './QueueStatusCard';
-import { Timeline, CheckCircle, AlertCircle } from '@mui/icons-material';
+import { Timeline, CheckCircle, ErrorOutline } from '@mui/icons-material';
 
 describe('QueueStatusCard', () => {
   it('should render title and value', () => {
@@ -33,7 +33,7 @@ describe('QueueStatusCard', () => {
       <QueueStatusCard
         title="Queued"
         value={0}
-        icon={<AlertCircle />}
+        icon={<ErrorOutline />}
         error="Failed to load"
       />
     );

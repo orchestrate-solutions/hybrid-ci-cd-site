@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Box, Container, Paper, Typography, Grid, Card, CardContent } from '@mui/material';
-import { Home, Briefcase, Settings, AlertCircle } from 'lucide-react';
+import { Home, Briefcase, Settings, ErrorOutline } from 'lucide-react';
 import { AppShell } from './AppShell';
 import { Header } from '../Header/Header';
 import { Sidebar } from '../Sidebar/Sidebar';

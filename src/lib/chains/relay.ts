@@ -66,9 +66,9 @@ export class RelayChain {
 
   constructor() {
     this.chain = new Chain();
-    this.chain.add_link(new FetchRelaysLink(), "fetch_relays");
-    this.chain.add_link(new FetchRelayMetricsLink(), "fetch_metrics");
-    this.chain.add_link(new AggregateRelayDataLink(), "aggregate");
+    this.chain.addLink(new FetchRelaysLink(), "fetch_relays");
+    this.chain.addLink(new FetchRelayMetricsLink(), "fetch_metrics");
+    this.chain.addLink(new AggregateRelayDataLink(), "aggregate");
 
     this.chain.connect("fetch_relays", "aggregate", () => true);
     this.chain.connect("fetch_metrics", "aggregate", () => true);

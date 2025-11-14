@@ -24,7 +24,7 @@ import {
   Add,
   Notifications,
   CheckCircle,
-  AlertTriangle,
+  WarningAmber,
   Settings,
   History,
 } from '@mui/icons-material';
@@ -143,7 +143,7 @@ export default function AlertConfigurationPage() {
           {
             title: 'Critical Rules',
             value: stats.critical_rules,
-            icon: <AlertTriangle />,
+            icon: <WarningAmber />,
             color: 'error',
           },
           { title: 'Total Alerts', value: stats.total_alerts, icon: <History />, color: 'info' },

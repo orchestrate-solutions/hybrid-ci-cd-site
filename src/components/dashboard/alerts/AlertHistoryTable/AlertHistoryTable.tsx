@@ -21,7 +21,7 @@ import {
   TextField,
   Stack,
 } from '@mui/material';
-import { CheckCircle, AlertTriangle } from '@mui/icons-material';
+import { CheckCircle, WarningAmber } from '@mui/icons-material';
 import type { AlertHistory } from '@/lib/api/alerts';
 
 interface AlertHistoryTableProps {
@@ -206,7 +206,7 @@ export default function AlertHistoryTable({
                       </>
                     ) : (
                       <>
-                        <AlertTriangle sx={{ fontSize: '1rem', color: '#ff9800' }} />
+                        <WarningAmber sx={{ fontSize: '1rem', color: '#ff9800' }} />
                         <span>Pending</span>
                       </>
                     )}

@@ -7,47 +7,21 @@
 
 import { Context, Chain, Link } from 'codeuchain';
 import { listJobs } from '../api/jobs';
-import { listPendingJobs } from '../api/queue';
 import type { Job, FilterOptions, SortOptions, ChainError } from './types';
 
 /**
  * Link 1: Fetch jobs from API
  * Uses listJobs() for dashboard view (CRUD)
- * and listPendingJobs() for queue operations
  */
 export class FetchJobsLink extends Link<Record<string, any>, Record<string, any>> {
-  constructor(private includeQueue: boolean = false) {
-    super();
-  }
-
   async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
     try {
       // Fetch from dashboard (CRUD)
       const response = await listJobs();
       const dashboardJobs = response.jobs || [];
       
-      let allJobs = dashboardJobs;
-      
-      // Optionally include queue status from queue API
-      if (this.includeQueue) {
-        try {
-          const queueResponse = await listPendingJobs();
-          const queueJobs = queueResponse.jobs || [];
-          
-          // Merge with queue status
-          const queueMap = new Map(queueJobs.map((j: Job) => [j.id, j]));
-          allJobs = dashboardJobs.map((job: Job) => ({
-            ...job,
-            ...(queueMap.has(job.id) ? queueMap.get(job.id) : {}),
-          }));
-        } catch (e) {
-          console.warn('Failed to fetch queue jobs:', e);
-          // Continue with dashboard jobs only
-        }
-      }
-      
       return ctx
-        .insert('jobs', allJobs)
+        .insert('jobs', dashboardJobs)
         .insert('fetch_timestamp', new Date().toISOString());
     } catch (error) {
       const err = error as ChainError;
@@ -78,11 +52,6 @@ export class FilterJobsLink extends Link<Record<string, any>, Record<string, any
     // Filter by priority
     if (options.priority) {
       filtered = filtered.filter((j: Job) => j.priority === options.priority);
-    }
-
-    // Filter by created_by
-    if (options.created_by) {
-      filtered = filtered.filter((j: Job) => j.created_by === options.created_by);
     }
 
     // Text search in name
@@ -126,7 +95,7 @@ export class SortJobsLink extends Link<Record<string, any>, Record<string, any>>
  * JobsChain - Orchestrates job fetching, filtering, and sorting
  * 
  * Usage:
- *   const chain = new JobsChain({ includeQueue: true });
+ *   const chain = new JobsChain();
  *   const result = await chain.run();
  *   const jobs = result.get('jobs_sorted');
  */
@@ -137,13 +106,14 @@ export class JobsChain {
     this.chain = new Chain();
 
     // Add links in order
-    const fetchLink = new FetchJobsLink(options?.includeQueue ?? false);
+    const fetchLink = new FetchJobsLink();
     const filterLink = new FilterJobsLink();
     const sortLink = new SortJobsLink();
 
-    this.chain.add_link(fetchLink, 'fetch');
-    this.chain.add_link(filterLink, 'filter');
-    this.chain.add_link(sortLink, 'sort');
+    // Use camelCase (addLink) per CodeUChain v1.1.2 runtime API
+    this.chain.addLink(fetchLink, 'fetch');
+    this.chain.addLink(filterLink, 'filter');
+    this.chain.addLink(sortLink, 'sort');
 
     // Connect links (all → next)
     this.chain.connect('fetch', 'filter', () => true);
@@ -156,7 +126,8 @@ export class JobsChain {
   async run(initialData?: Record<string, any>): Promise<any> {
     const ctx = new Context(initialData || {});
     const result = await this.chain.run(ctx);
-    return result.to_dict();
+    // Use toObject() per CodeUChain v1.1.2 context API
+    return result.toObject();
   }
 }
 

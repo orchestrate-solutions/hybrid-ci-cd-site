@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Box } from '@mui/material';
 import { Sidebar } from './Sidebar';
-import { Home, Briefcase, Settings, AlertCircle, BarChart3, GitBranch, Users } from 'lucide-react';
+import { Home, Briefcase, Settings, ErrorOutline, BarChart3, GitBranch, Users } from 'lucide-react';
 
 const meta = {
   component: Sidebar,
@@ -109,11 +109,11 @@ export const LongNavigationList: Story = {
       { id: 'jobs', label: 'Jobs', icon: Briefcase },
       { id: 'agents', label: 'Agents', icon: Users },
       { id: 'deployments', label: 'Deployments', icon: GitBranch },
-      { id: 'alerts', label: 'Alerts', icon: AlertCircle },
+      { id: 'alerts', label: 'Alerts', icon: ErrorOutline },
       { id: 'metrics', label: 'Metrics', icon: BarChart3 },
       { id: 'settings', label: 'Settings', icon: Settings },
       { id: 'docs', label: 'Documentation', icon: Briefcase },
-      { id: 'support', label: 'Support', icon: AlertCircle },
+      { id: 'support', label: 'Support', icon: ErrorOutline },
     ],
     activeId: 'jobs',
     onNavigate: (id) => console.log('Navigated to:', id),

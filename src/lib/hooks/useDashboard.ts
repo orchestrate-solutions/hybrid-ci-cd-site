@@ -3,7 +3,13 @@
  * 
  * Orchestrates jobs, agents, and deployments chains
  * Provides unified dashboard data interface with computed metrics
- * Returns: {jobs, agents, deployments, metrics, loading, error, refetch}
+ * 
+ * IMPORTANT: Chains return full context objects, not arrays!
+ * - JobsChain.run() returns {jobs, filtered_jobs, jobs_sorted, ...}
+ * - AgentsChain.run() returns {agents, agents_filtered, agents_sorted, ...}
+ * - DeploymentsChain.run() returns {deployments, deployments_filtered, deployments_sorted, ...}
+ * 
+ * Must extract the _sorted key from each result.
  */
 
 import { useMemo, useCallback } from 'react';
@@ -55,29 +61,34 @@ function computeMetrics(
   agents: Agent[],
   deployments: Deployment[]
 ): DashboardMetrics {
+  // Ensure we have arrays (chains return full context, need to extract)
+  const jobsArray = Array.isArray(jobs) ? jobs : [];
+  const agentsArray = Array.isArray(agents) ? agents : [];
+  const deploymentsArray = Array.isArray(deployments) ? deployments : [];
+
   // Job statistics
   const jobStats = {
-    total: jobs.length,
-    running: jobs.filter(j => j.status === 'RUNNING').length,
-    completed: jobs.filter(j => j.status === 'COMPLETED').length,
-    failed: jobs.filter(j => j.status === 'FAILED').length,
-    queued: jobs.filter(j => j.status === 'QUEUED').length,
+    total: jobsArray.length,
+    running: jobsArray.filter(j => j.status === 'RUNNING').length,
+    completed: jobsArray.filter(j => j.status === 'COMPLETED').length,
+    failed: jobsArray.filter(j => j.status === 'FAILED').length,
+    queued: jobsArray.filter(j => j.status === 'QUEUED').length,
   };
 
   // Agent statistics
   const agentStats = {
-    total: agents.length,
-    online: agents.filter(a => a.status === 'ONLINE').length,
-    busy: agents.filter(a => a.status === 'BUSY').length,
-    offline: agents.filter(a => a.status === 'OFFLINE').length,
+    total: agentsArray.length,
+    online: agentsArray.filter(a => a.status === 'ONLINE').length,
+    busy: agentsArray.filter(a => a.status === 'BUSY').length,
+    offline: agentsArray.filter(a => a.status === 'OFFLINE').length,
   };
 
   // Deployment statistics
   const deploymentStats = {
-    total: deployments.length,
-    completed: deployments.filter(d => d.status === 'COMPLETED').length,
-    failed: deployments.filter(d => d.status === 'FAILED').length,
-    inProgress: deployments.filter(d => d.status === 'IN_PROGRESS').length,
+    total: deploymentsArray.length,
+    completed: deploymentsArray.filter(d => d.status === 'COMPLETED').length,
+    failed: deploymentsArray.filter(d => d.status === 'FAILED').length,
+    inProgress: deploymentsArray.filter(d => d.status === 'IN_PROGRESS').length,
   };
 
   return {
@@ -102,6 +113,7 @@ function computeMetrics(
  * 
  * ARCHITECTURE:
  * - Runs three parallel chains: JobsChain, AgentsChain, DeploymentsChain
+ * - Extracts _sorted data from each chain's context result
  * - Computes metrics from live data
  * - Supports real-time polling via useRealTime integration
  * 
@@ -126,25 +138,27 @@ export function useDashboard(): UseDashboardResult {
   const jobsResult = useChain(
     jobsChain,
     { filters: { status: 'ALL', priority: 'ALL' } },
-    { autoRun: true, initialData: [] }
+    { autoRun: true, initialData: {} }
   );
 
   const agentsResult = useChain(
     agentsChain,
     { filters: { status: 'ALL' } },
-    { autoRun: true, initialData: [] }
+    { autoRun: true, initialData: {} }
   );
 
   const deploymentsResult = useChain(
     deploymentsChain,
     { filters: { status: 'ALL', region: 'ALL' } },
-    { autoRun: true, initialData: [] }
+    { autoRun: true, initialData: {} }
   );
 
-  // Combine results
-  const jobs = jobsResult.data || [];
-  const agents = agentsResult.data || [];
-  const deployments = deploymentsResult.data || [];
+  // Extract the _sorted arrays from chain context results
+  // Chains return full context {jobs, filtered_jobs, jobs_sorted, ...}
+  // We need the _sorted key which has final filtered+sorted data
+  const jobs = (jobsResult.data?.jobs_sorted || []) as Job[];
+  const agents = (agentsResult.data?.agents_sorted || []) as Agent[];
+  const deployments = (deploymentsResult.data?.deployments_sorted || []) as Deployment[];
 
   // Compute metrics
   const metrics = useMemo(

@@ -3,10 +3,13 @@
  * 
  * Pattern: Run chain, manage loading/error/data states
  * Returns: {data, loading, error, refetch}
+ * 
+ * IMPORTANT: Custom chains (JobsChain, AgentsChain, etc.) have their own 
+ * .run(initialData) method that takes a plain object and returns a plain object
+ * (they handle Context creation and toObject() internally).
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { Context, Chain } from 'codeuchain';
 
 export interface UseChainOptions {
   autoRun?: boolean;
@@ -22,9 +25,15 @@ export interface UseChainResult<T = any> {
 
 /**
  * Base hook for running CodeUChain chains
+ * 
+ * Usage:
+ *   const jobsChain = new JobsChain();
+ *   const { data, loading, error } = useChain(jobsChain, {filters: {...}});
+ *   
+ * Note: Chains must have a .run(initialData) method that returns Promise<T>
  */
 export function useChain<T = any>(
-  chain: Chain,
+  chain: { run: (initialData?: Record<string, any>) => Promise<T> },
   chainInput: Record<string, any> = {},
   options: UseChainOptions = {}
 ): UseChainResult<T> {
@@ -38,12 +47,10 @@ export function useChain<T = any>(
     setError(null);
 
     try {
-      const ctx = new Context(chainInput);
-      const result = await chain.run(ctx);
-      
-      // Extract meaningful data from chain result
-      const chainData = result.to_dict() as T;
-      setData(chainData);
+      // Custom chains have .run(initialData) that returns a plain object
+      // (they create Context internally and call toObject())
+      const chainData = await chain.run(chainInput);
+      setData(chainData as T);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);

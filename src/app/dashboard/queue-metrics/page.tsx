@@ -11,7 +11,7 @@ import {
   Paper,
   Grid,
 } from '@mui/material';
-import { RefreshCw as RefreshIcon, Download as DownloadIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Download as DownloadIcon } from '@mui/icons-material';
 import QueueDepthCard from '@/components/dashboard/queue/QueueDepthCard/QueueDepthCard';
 import MessageAgeChart from '@/components/dashboard/queue/MessageAgeChart/MessageAgeChart';
 import ThroughputChart from '@/components/dashboard/queue/ThroughputChart/ThroughputChart';

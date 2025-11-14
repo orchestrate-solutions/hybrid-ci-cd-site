@@ -125,9 +125,10 @@ export class AgentsChain {
     const filterLink = new FilterAgentsLink();
     const sortLink = new SortAgentsLink();
 
-    this.chain.add_link(fetchLink, 'fetch');
-    this.chain.add_link(filterLink, 'filter');
-    this.chain.add_link(sortLink, 'sort');
+    // Use camelCase (addLink) per CodeUChain v1.1.2 runtime API
+    this.chain.addLink(fetchLink, 'fetch');
+    this.chain.addLink(filterLink, 'filter');
+    this.chain.addLink(sortLink, 'sort');
 
     // Connect links (all → next)
     this.chain.connect('fetch', 'filter', () => true);
@@ -140,7 +141,8 @@ export class AgentsChain {
   async run(initialData?: Record<string, any>): Promise<any> {
     const ctx = new Context(initialData || {});
     const result = await this.chain.run(ctx);
-    return result.to_dict();
+    // Use toObject() per CodeUChain v1.1.2 context API
+    return result.toObject();
   }
 }
 

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { QueueStatusCard } from './QueueStatusCard';
-import { Timeline, Speed, CheckCircle, AlertTriangle } from '@mui/icons-material';
+import { Timeline, Speed, CheckCircle, WarningAmber } from '@mui/icons-material';
 
 const meta = {
   component: QueueStatusCard,
@@ -50,7 +50,7 @@ export const DeadLetter: Story = {
   args: {
     title: 'Dead Letter Queue',
     value: 2,
-    icon: <AlertTriangle />,
+    icon: <WarningAmber />,
     color: 'error',
   },
 };
@@ -69,7 +69,7 @@ export const Error: Story = {
   args: {
     title: 'Queue Status',
     value: 0,
-    icon: <AlertTriangle />,
+    icon: <WarningAmber />,
     color: 'error',
     error: 'Failed to load metrics',
   },

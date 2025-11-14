@@ -8,16 +8,18 @@ import {
   Box,
   Typography,
   Chip,
+  Card,
+  CardContent,
+  Grid,
+} from '@mui/material';
+import {
   Timeline,
   TimelineItem,
   TimelineSeparator,
   TimelineConnector,
   TimelineContent,
   TimelineDot,
-  Card,
-  CardContent,
-  Grid,
-} from '@mui/material';
+} from '@mui/lab';
 import {
   CheckCircle,
   ErrorOutline,

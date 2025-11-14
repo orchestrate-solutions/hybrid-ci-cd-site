@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Box, Grid, Typography, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress } from '@mui/material';
-import { Timeline, Speed, CheckCircle, AlertTriangle } from '@mui/icons-material';
+import { Timeline, Speed, CheckCircle, WarningAmber } from '@mui/icons-material';
 import { useQueues } from '@/lib/hooks/useQueues';
 import { QueueStatusCard } from '@/components/dashboard/QueueStatusCard';
 
@@ -42,7 +42,7 @@ export default function QueuesPage() {
           Queue Status
         </Typography>
         <Paper sx={{ p: 2, textAlign: 'center', color: 'error.main' }}>
-          <AlertTriangle sx={{ fontSize: 48, mb: 1 }} />
+          <WarningAmber sx={{ fontSize: 48, mb: 1 }} />
           <Typography variant="body1">Failed to load queue data</Typography>
           <Typography variant="caption" display="block" mt={1}>
             {error.message}
@@ -91,7 +91,7 @@ export default function QueuesPage() {
           <QueueStatusCard
             title="Dead Letter"
             value={computedStats.dlqCount || 0}
-            icon={<AlertTriangle />}
+            icon={<WarningAmber />}
             color={computedStats.dlqCount > 0 ? 'error' : 'success'}
             loading={loading}
           />

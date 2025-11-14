@@ -7,7 +7,7 @@ import {
   Warning as DegradedIcon,
   TrendingUp as ThroughputIcon,
   Timer as LatencyIcon,
-  AlertCircle as ErrorIcon,
+  ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
 import type { RelayHealthMetrics } from '@/lib/api/relays';
 

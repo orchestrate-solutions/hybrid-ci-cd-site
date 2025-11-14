@@ -23,11 +23,11 @@ import {
 import {
   Refresh,
   Download,
-  FileJson,
+  Description,
   CheckCircle,
   Edit,
   Delete,
-  AlertTriangle,
+  WarningAmber,
 } from '@mui/icons-material';
 import { useAuditLogs } from '@/lib/hooks/useAuditLogs';
 import { auditApi } from '@/lib/api/audit';
@@ -111,7 +111,7 @@ export default function AuditLogsPage() {
       {/* High Sensitivity Warning */}
       {statistics.sensitive > 0 && (
         <Alert severity="warning" sx={{ mb: 3 }} role="alert">
-          <AlertTriangle sx={{ mr: 1, display: 'inline' }} />
+          <WarningAmber sx={{ mr: 1, display: 'inline' }} />
           {statistics.sensitive} high-sensitivity change{statistics.sensitive !== 1 ? 's' : ''}{' '}
           detected. Review with caution.
         </Alert>
@@ -124,7 +124,7 @@ export default function AuditLogsPage() {
           { title: 'Created', value: statistics.creates, icon: <CheckCircle /> },
           { title: 'Updated', value: statistics.updates, icon: <Edit /> },
           { title: 'Deleted', value: statistics.deletes, icon: <Delete /> },
-          { title: 'High Sensitivity', value: statistics.sensitive, icon: <AlertTriangle /> },
+          { title: 'High Sensitivity', value: statistics.sensitive, icon: <WarningAmber /> },
         ].map((stat) => (
           <Grid item xs={12} sm={6} md={4} lg={2.4} key={stat.title}>
             <Card>
@@ -194,7 +194,7 @@ export default function AuditLogsPage() {
             Export as CSV
           </Button>
           <Button
-            startIcon={<FileJson />}
+            startIcon={<Description />}
             onClick={exportAsJSON}
             variant="outlined"
             size="small"
