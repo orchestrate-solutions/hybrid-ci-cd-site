@@ -9,7 +9,7 @@
  * (they handle Context creation and toObject() internally).
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 
 export interface UseChainOptions {
   autoRun?: boolean;
@@ -24,6 +24,19 @@ export interface UseChainResult<T = any> {
 }
 
 /**
+ * Serialize chainInput to stable string for dependency comparison
+ * This prevents infinite loops when chainInput is recreated with same data
+ */
+function serializeInput(input: Record<string, any>): string {
+  try {
+    return JSON.stringify(input);
+  } catch {
+    // Fallback for circular references or non-serializable objects
+    return 'unstable';
+  }
+}
+
+/**
  * Base hook for running CodeUChain chains
  * 
  * Usage:
@@ -31,6 +44,12 @@ export interface UseChainResult<T = any> {
  *   const { data, loading, error } = useChain(jobsChain, {filters: {...}});
  *   
  * Note: Chains must have a .run(initialData) method that returns Promise<T>
+ * 
+ * Fix for infinite loop (maximum update depth exceeded):
+ * - Memoize chainInput with serialization (not reference equality)
+ * - This prevents execute() from changing on every render just because
+ *   the object reference changed but content stayed the same
+ * - execute now depends on stable serialized input, not the raw object
  */
 export function useChain<T = any>(
   chain: { run: (initialData?: Record<string, any>) => Promise<T> },
@@ -41,6 +60,10 @@ export function useChain<T = any>(
   const [data, setData] = useState<T | null>(initialData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Memoize chainInput based on serialized content, not reference
+  // This prevents execute() callback from changing when input content is identical
+  const inputKey = useMemo(() => serializeInput(chainInput), [chainInput]);
 
   const execute = useCallback(async () => {
     setLoading(true);
@@ -58,7 +81,7 @@ export function useChain<T = any>(
     } finally {
       setLoading(false);
     }
-  }, [chain, chainInput]);
+  }, [chain, inputKey]); // Depend on inputKey, not chainInput directly
 
   useEffect(() => {
     if (autoRun) {
