@@ -121,49 +121,69 @@ export const DEMO_DEPLOYMENTS = [
 ];
 
 /**
- * Demo agents
+ * Demo agents - includes resource metrics for pool health indicators
  */
 export const DEMO_AGENTS = [
   {
     id: 'agent-us-east-1-001',
+    name: 'us-east-1-worker-01',
     status: 'HEALTHY',
     pool_name: 'us-east-1',
     cpu_percent: 45,
     memory_percent: 62,
     disk_percent: 38,
+    cpu_cores: 8,
+    memory_mb: 16384,
+    disk_gb: 256,
+    version: '1.2.5',
     last_heartbeat: new Date(Date.now() - 5 * 1000).toISOString(),
     jobs_queued: 3,
     jobs_completed: 142,
   },
   {
     id: 'agent-us-east-1-002',
+    name: 'us-east-1-worker-02',
     status: 'HEALTHY',
     pool_name: 'us-east-1',
     cpu_percent: 28,
     memory_percent: 41,
     disk_percent: 32,
+    cpu_cores: 8,
+    memory_mb: 16384,
+    disk_gb: 256,
+    version: '1.2.5',
     last_heartbeat: new Date(Date.now() - 3 * 1000).toISOString(),
     jobs_queued: 2,
     jobs_completed: 156,
   },
   {
     id: 'agent-us-west-2-001',
+    name: 'us-west-2-worker-01',
     status: 'HEALTHY',
     pool_name: 'us-west-2',
     cpu_percent: 72,
     memory_percent: 85,
     disk_percent: 51,
+    cpu_cores: 16,
+    memory_mb: 32768,
+    disk_gb: 512,
+    version: '1.2.5',
     last_heartbeat: new Date(Date.now() - 8 * 1000).toISOString(),
     jobs_queued: 4,
     jobs_completed: 98,
   },
   {
     id: 'agent-eu-west-1-001',
+    name: 'eu-west-1-worker-01',
     status: 'UNHEALTHY',
     pool_name: 'eu-west-1',
     cpu_percent: 95,
     memory_percent: 92,
     disk_percent: 88,
+    cpu_cores: 4,
+    memory_mb: 8192,
+    disk_gb: 128,
+    version: '1.2.4',
     last_heartbeat: new Date(Date.now() - 45 * 1000).toISOString(),
     jobs_queued: 0,
     jobs_completed: 67,
@@ -287,5 +307,33 @@ export function getDemoAgentsResponse() {
     total: DEMO_AGENTS.length,
     limit: 100,
     offset: 0,
+  };
+}
+
+/**
+ * Get demo metrics as MetricsResponse
+ */
+export function getDemoMetricsResponse() {
+  return {
+    metrics: DEMO_METRICS,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Get demo dashboard overview (aggregate of metrics, recent jobs, and agent count)
+ */
+export function getDemoDashboardOverview() {
+  return {
+    metrics: DEMO_METRICS,
+    recent_jobs: DEMO_JOBS.slice(0, 5),
+    recent_deployments: DEMO_DEPLOYMENTS.slice(0, 3),
+    agent_count: DEMO_AGENTS.length,
+    agent_health: {
+      healthy: DEMO_AGENTS.filter(a => a.status === 'HEALTHY').length,
+      unhealthy: DEMO_AGENTS.filter(a => a.status === 'UNHEALTHY').length,
+      degraded: 0,
+    },
+    timestamp: new Date().toISOString(),
   };
 }

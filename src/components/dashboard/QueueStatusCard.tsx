@@ -1,4 +1,4 @@
-import { Card, CardContent, Box, Typography, Skeleton, CircularProgress } from '@mui/material';
+import { Card, CardContent, Box, Typography, Skeleton, CircularProgress, useTheme } from '@mui/material';
 import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import { ReactNode } from 'react';
 
@@ -23,11 +23,13 @@ export function QueueStatusCard({
   trend,
   unit,
 }: QueueStatusCardProps) {
+  const theme = useTheme();
+  
   const colorMap = {
-    success: { light: '#e8f5e9', main: '#4caf50' },
-    warning: { light: '#fff3e0', main: '#ff9800' },
-    error: { light: '#ffebee', main: '#f44336' },
-    info: { light: '#e3f2fd', main: '#2196f3' },
+    success: { light: theme.palette.success.light, main: theme.palette.success.main },
+    warning: { light: theme.palette.warning.light, main: theme.palette.warning.main },
+    error: { light: theme.palette.error.light, main: theme.palette.error.main },
+    info: { light: theme.palette.info.light, main: theme.palette.info.main },
   };
 
   const colorScheme = colorMap[color];
@@ -80,15 +82,15 @@ export function QueueStatusCard({
                 <Box display="flex" alignItems="center" gap={0.5} mt={1}>
                   {trend > 0 ? (
                     <>
-                      <ArrowUpward sx={{ fontSize: 16, color: '#f44336' }} />
-                      <Typography variant="caption" sx={{ color: '#f44336' }}>
+                      <ArrowUpward sx={{ fontSize: 16, color: 'error.main' }} />
+                      <Typography variant="caption" sx={{ color: 'error.main' }}>
                         +{trend}
                       </Typography>
                     </>
                   ) : trend < 0 ? (
                     <>
-                      <ArrowDownward sx={{ fontSize: 16, color: '#4caf50' }} />
-                      <Typography variant="caption" sx={{ color: '#4caf50' }}>
+                      <ArrowDownward sx={{ fontSize: 16, color: 'success.main' }} />
+                      <Typography variant="caption" sx={{ color: 'success.main' }}>
                         {trend}
                       </Typography>
                     </>

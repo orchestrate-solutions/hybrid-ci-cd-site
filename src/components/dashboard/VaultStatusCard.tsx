@@ -1,4 +1,4 @@
-import { Card, CardContent, Box, Typography, Button, Chip, Stack } from '@mui/material';
+import { Card, CardContent, Box, Typography, Button, Chip, Stack, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, Cloud } from '@mui/icons-material';
 import { VaultConfig } from '@/lib/api/vault';
 
@@ -10,9 +10,9 @@ interface VaultStatusCardProps {
 }
 
 const providerIcons: Record<string, JSX.Element> = {
-  aws_secrets_manager: <Cloud sx={{ color: '#FF9900' }} />,
-  azure_keyvault: <Cloud sx={{ color: '#0078D4' }} />,
-  gcp_secret_manager: <Cloud sx={{ color: '#4285F4' }} />,
+  aws_secrets_manager: <Cloud sx={{ color: 'warning.main' }} />,
+  azure_keyvault: <Cloud sx={{ color: 'info.main' }} />,
+  gcp_secret_manager: <Cloud sx={{ color: 'primary.main' }} />,
 };
 
 const providerLabels: Record<string, string> = {
@@ -22,7 +22,8 @@ const providerLabels: Record<string, string> = {
 };
 
 export function VaultStatusCard({ vault, onTest, onEdit, onDelete }: VaultStatusCardProps) {
-  const statusColor = vault.is_connected ? '#4caf50' : '#f44336';
+  const theme = useTheme();
+  const statusColor = vault.is_connected ? theme.palette.success.main : theme.palette.error.main;
   const statusLabel = vault.is_connected ? 'Connected' : 'Disconnected';
   const statusIcon = vault.is_connected ? <CheckCircle /> : <ErrorOutline />;
 
@@ -58,7 +59,7 @@ export function VaultStatusCard({ vault, onTest, onEdit, onDelete }: VaultStatus
           <Box
             sx={{
               p: 1.5,
-              backgroundColor: '#f5f5f5',
+              backgroundColor: 'background.paper',
               borderRadius: 1,
             }}
           >

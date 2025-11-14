@@ -66,14 +66,13 @@ export class FilterDeploymentsLink extends Link<Record<string, any>, Record<stri
       filtered = filtered.filter((d: Deployment) => d.status === options.status);
     }
 
-    // Filter by environment
-    if (options.environment) {
-      filtered = filtered.filter((d: Deployment) => d.environment === options.environment);
-    }
-
-    // Filter by service
-    if (options.service_id) {
-      filtered = filtered.filter((d: Deployment) => d.service_id === options.service_id);
+    // Filter by search term (in name or service)
+    if (options.search) {
+      const searchLower = options.search.toLowerCase();
+      filtered = filtered.filter((d: Deployment) =>
+        (d.name?.toLowerCase().includes(searchLower)) ||
+        ((d as any).service?.toLowerCase().includes(searchLower))
+      );
     }
 
     return ctx.insert('deployments_filtered', filtered);
@@ -90,7 +89,7 @@ export class SortDeploymentsLink extends Link<Record<string, any>, Record<string
 
   async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
     const deployments = ctx.get('deployments_filtered') || ctx.get('deployments') || [];
-    const options = this.options || { field: 'deployed_at', direction: 'desc' };
+    const options = this.options || { field: 'created_at', direction: 'desc' };
 
     const sorted = [...deployments].sort((a: Deployment, b: Deployment) => {
       const aVal = (a as any)[options.field];
@@ -106,12 +105,23 @@ export class SortDeploymentsLink extends Link<Record<string, any>, Record<string
 }
 
 /**
+ * Link 4: Extract final result (just the sorted deployments array)
+ * Extracts deployments_sorted from context and returns it as the final output
+ */
+export class ExtractResultLink extends Link<Record<string, any>, Record<string, any>> {
+  async call(ctx: Context<Record<string, any>>): Promise<Context<Record<string, any>>> {
+    const deploymentsSorted = ctx.get('deployments_sorted') || [];
+    return ctx.insert('final_result', deploymentsSorted);
+  }
+}
+
+/**
  * DeploymentsChain - Orchestrates deployment fetching, filtering, and sorting
  * 
  * Usage:
  *   const chain = new DeploymentsChain({ includeHistory: true });
  *   const result = await chain.run();
- *   const deployments = result.get('deployments_sorted');
+ *   // result is now an array of Deployment[], not an object
  */
 export class DeploymentsChain {
   private chain: Chain;
@@ -123,25 +133,31 @@ export class DeploymentsChain {
     const fetchLink = new FetchDeploymentsLink(options?.includeHistory, options?.serviceId);
     const filterLink = new FilterDeploymentsLink();
     const sortLink = new SortDeploymentsLink();
+    const extractLink = new ExtractResultLink();
 
     // Use camelCase (addLink) per CodeUChain v1.1.2 runtime API
     this.chain.addLink(fetchLink, 'fetch');
     this.chain.addLink(filterLink, 'filter');
     this.chain.addLink(sortLink, 'sort');
+    this.chain.addLink(extractLink, 'extract');
 
     // Connect links (all → next)
     this.chain.connect('fetch', 'filter', () => true);
     this.chain.connect('filter', 'sort', () => true);
+    this.chain.connect('sort', 'extract', () => true);
   }
 
   /**
    * Run the chain with initial context
+   * Returns just the deployments array (final_result), not the entire context
    */
-  async run(initialData?: Record<string, any>): Promise<any> {
+  async run(initialData?: Record<string, any>): Promise<Deployment[]> {
     const ctx = new Context(initialData || {});
     const result = await this.chain.run(ctx);
-    // Use toObject() per CodeUChain v1.1.2 context API
-    return result.toObject();
+    // Extract just the final_result (deployments array) from context
+    const contextObj = result.toObject();
+    const deploymentsArray = contextObj.final_result || [];
+    return deploymentsArray as Deployment[];
   }
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Card, CardContent, Typography, ToggleButtonGroup, ToggleButton, CircularProgress, Button } from '@mui/material';
+import { Box, Card, CardContent, Typography, ToggleButtonGroup, ToggleButton, CircularProgress, Button, useTheme } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download as DownloadIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import type { RelayMetricsHistory } from '@/lib/api/relays';
@@ -28,6 +28,7 @@ export default function RelayMetricsChart({
   error = null,
   onRefresh,
 }: RelayMetricsChartProps) {
+  const theme = useTheme();
   const [selectedTimeRange, setSelectedTimeRange] = useState<'24h' | '7d' | '30d'>(timeRange);
 
   if (loading) {
@@ -101,15 +102,16 @@ export default function RelayMetricsChart({
   };
 
   const getChartColor = (): string => {
+    const { palette } = theme;
     switch (metricType) {
       case 'response_time':
-        return '#2196F3';
+        return palette.info.main;
       case 'error_rate':
-        return '#F44336';
+        return palette.error.main;
       case 'throughput':
-        return '#4CAF50';
+        return palette.success.main;
       default:
-        return '#999';
+        return palette.text.disabled;
     }
   };
 

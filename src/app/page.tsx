@@ -27,6 +27,11 @@ import {
   Lock,
   Layers,
   CheckCircle2,
+  Cloud,
+  FileCode,
+  Brain,
+  Settings,
+  Gauge,
 } from 'lucide-react';
 import { ThemeSwitcher } from '@/components/common/ThemeSwitcher';
 
@@ -492,7 +497,6 @@ export default function Home() {
               { icon: Settings, label: 'Custom Schemas' },
               { icon: Gauge, label: 'Monitoring Stacks' },
             ].map((item, index) => {
-              const Icon = item.icon === Zap ? Zap : item.icon === 'Cloud' ? Network : item.icon === 'FileCode' ? Code2 : item.icon === 'Brain' ? Users : item.icon === 'Settings' ? Shield : Layers;
               return (
                 <Grid item xs={12} sm={6} md={4} key={index}>
                   <Box
@@ -519,7 +523,7 @@ export default function Home() {
                     }}
                   >
                     <Box sx={{ color: 'primary.main' }}>
-                      <Icon size={24} />
+                      <item.icon size={24} />
                     </Box>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {item.label}
@@ -615,4 +619,3 @@ export default function Home() {
     </Box>
   );
 }
-

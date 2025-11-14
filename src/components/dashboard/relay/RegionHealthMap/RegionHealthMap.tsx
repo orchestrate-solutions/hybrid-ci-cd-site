@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Card, CardContent, Typography, Chip, CircularProgress, Button, Tooltip } from '@mui/material';
+import { Box, Card, CardContent, Typography, Chip, CircularProgress, Button, Tooltip, useTheme } from '@mui/material';
 import { ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon } from '@mui/icons-material';
 import type { RelayHealthMetrics } from '@/lib/api/relays';
 import { useState } from 'react';
@@ -35,6 +35,7 @@ export default function RegionHealthMap({
   error = null,
   onRegionClick,
 }: RegionHealthMapProps) {
+  const theme = useTheme();
   const [zoomLevel, setZoomLevel] = useState(1);
 
   if (loading) {
@@ -118,15 +119,16 @@ export default function RegionHealthMap({
   });
 
   const getStatusColor = (status: string): string => {
+    const { palette } = theme;
     switch (status) {
       case 'online':
-        return '#4CAF50';
+        return palette.success.main;
       case 'offline':
-        return '#F44336';
+        return palette.error.main;
       case 'degraded':
-        return '#FF9800';
+        return palette.warning.main;
       default:
-        return '#999';
+        return palette.text.disabled;
     }
   };
 

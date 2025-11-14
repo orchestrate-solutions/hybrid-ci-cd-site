@@ -35,6 +35,7 @@ import {
   Divider,
   Tooltip,
   IconButton,
+  useTheme,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -78,24 +79,34 @@ interface StatusIconProps {
 }
 
 function StatusIcon({ status, size = 'small' }: StatusIconProps) {
+  const theme = useTheme();
+  
   const sizeMap = {
     small: { fontSize: '1.2rem' },
     medium: { fontSize: '1.5rem' },
   };
+  
+  const colorMap: Record<string, string> = {
+    IDLE: theme.palette.success.main,
+    RUNNING: theme.palette.info.main,
+    PAUSED: theme.palette.warning.main,
+    OFFLINE: theme.palette.error.main,
+    ERROR: theme.palette.error.main,
+  };
 
   switch (status) {
     case 'IDLE':
-      return <CheckCircleIcon sx={{ color: '#4caf50', ...sizeMap[size] }} />;
+      return <CheckCircleIcon sx={{ color: colorMap.IDLE, ...sizeMap[size] }} />;
     case 'RUNNING':
-      return <ResumeIcon sx={{ color: '#2196f3', ...sizeMap[size] }} />;
+      return <ResumeIcon sx={{ color: colorMap.RUNNING, ...sizeMap[size] }} />;
     case 'PAUSED':
-      return <PauseIcon sx={{ color: '#ff9800', ...sizeMap[size] }} />;
+      return <PauseIcon sx={{ color: colorMap.PAUSED, ...sizeMap[size] }} />;
     case 'OFFLINE':
-      return <OfflineIcon sx={{ color: '#f44336', ...sizeMap[size] }} />;
+      return <OfflineIcon sx={{ color: colorMap.OFFLINE, ...sizeMap[size] }} />;
     case 'ERROR':
-      return <ErrorIcon sx={{ color: '#f44336', ...sizeMap[size] }} />;
+      return <ErrorIcon sx={{ color: colorMap.ERROR, ...sizeMap[size] }} />;
     default:
-      return <WarningIcon sx={{ color: '#ff9800', ...sizeMap[size] }} />;
+      return <WarningIcon sx={{ color: colorMap.PAUSED, ...sizeMap[size] }} />;
   }
 }
 
@@ -108,6 +119,7 @@ interface HeartbeatIndicatorProps {
 }
 
 function HeartbeatIndicator({ lastHeartbeat, threshold = 60 }: HeartbeatIndicatorProps) {
+  const theme = useTheme();
   const now = new Date();
   const lastBeat = new Date(lastHeartbeat);
   const secondsAgo = Math.floor((now.getTime() - lastBeat.getTime()) / 1000);
@@ -124,7 +136,8 @@ function HeartbeatIndicator({ lastHeartbeat, threshold = 60 }: HeartbeatIndicato
           py: 0.5,
           borderRadius: 1,
           bgcolor: isHealthy ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
-          border: `1px solid ${isHealthy ? '#4caf50' : '#f44336'}`,
+          borderColor: isHealthy ? theme.palette.success.main : theme.palette.error.main,
+          border: `1px solid ${isHealthy ? theme.palette.success.main : theme.palette.error.main}`,
         }}
       >
         <Box
@@ -132,7 +145,7 @@ function HeartbeatIndicator({ lastHeartbeat, threshold = 60 }: HeartbeatIndicato
             width: 8,
             height: 8,
             borderRadius: '50%',
-            bgcolor: isHealthy ? '#4caf50' : '#f44336',
+            bgcolor: isHealthy ? theme.palette.success.main : theme.palette.error.main,
             animation: isHealthy ? 'pulse 2s infinite' : 'none',
             '@keyframes pulse': {
               '0%': { opacity: 1 },
@@ -200,7 +213,7 @@ function AgentPoolCard({ pool, metrics, onDrain, onScale }: AgentPoolCardProps) 
                 borderRadius: 1,
                 bgcolor: 'rgba(0, 0, 0, 0.1)',
                 '& .MuiLinearProgress-bar': {
-                  bgcolor: healthPercentage > 70 ? '#4caf50' : healthPercentage > 40 ? '#ff9800' : '#f44336',
+                  bgcolor: healthPercentage > 70 ? 'success.main' : healthPercentage > 40 ? 'warning.main' : 'error.main',
                 },
               }}
             />

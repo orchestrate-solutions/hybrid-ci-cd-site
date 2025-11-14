@@ -27,13 +27,20 @@ function getDocContent(slug: string): string {
 // Generate static pages for all documentation
 export async function generateStaticParams() {
   const docs = [
-    "executive-summary",
-    "problem-statement",
-    "solution-architecture",
     "authentication",
-    "frontend-architecture",
-    "technology-stack",
+    "executive-summary",
     "features-benefits",
+    "frontend-architecture",
+    "MARKETPLACE_IMPLEMENTATION",
+    "MARKETPLACE_PHASE2_SUMMARY",
+    "MVP_DASHBOARD_IMPLEMENTATION",
+    "overview",
+    "problem-statement",
+    "project-needs",
+    "project-readme",
+    "README",
+    "solution-architecture",
+    "technology-stack",
   ];
 
   return docs.map((doc) => ({

@@ -14,6 +14,7 @@ import {
   TablePagination,
   CircularProgress,
   Typography,
+  useTheme,
 } from '@mui/material';
 import { WebhookEvent } from '../../api/webhooks';
 
@@ -30,6 +31,7 @@ export default function WebhookEventTable({
   loading = false,
   itemsPerPage = 20,
 }: WebhookEventTableProps) {
+  const theme = useTheme();
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState('all');
   const [providerFilter, setProviderFilter] = useState('all');
@@ -141,7 +143,7 @@ export default function WebhookEventTable({
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+            <TableRow sx={{ backgroundColor: theme.palette.action.hover }}>
               <TableCell onClick={() => setSortBy('timestamp')} sx={{ cursor: 'pointer' }}>
                 Timestamp {sortBy === 'timestamp' && '↓'}
               </TableCell>
@@ -160,8 +162,8 @@ export default function WebhookEventTable({
                 onClick={() => onSelectEvent(event)}
                 sx={{
                   cursor: 'pointer',
-                  backgroundColor: event.delivery_status === 'failed' ? '#ffebee' : 'inherit',
-                  '&:hover': { backgroundColor: '#f9f9f9' },
+                  backgroundColor: event.delivery_status === 'failed' ? theme.palette.error.light : 'inherit',
+                  '&:hover': { backgroundColor: theme.palette.action.hover },
                 }}
                 className={event.delivery_status === 'failed' ? 'error-row' : ''}
               >

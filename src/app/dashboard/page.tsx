@@ -30,6 +30,7 @@ import {
   CardActions,
   Chip,
   Stack,
+  useTheme,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -57,13 +58,28 @@ function StatusCard({
   color?: 'success' | 'warning' | 'error' | 'info';
   trend?: 'up' | 'down' | 'neutral';
 }) {
+  const theme = useTheme();
+  
+  const trendColorMap = {
+    up: theme.palette.success.main,
+    down: theme.palette.error.main,
+    neutral: theme.palette.text.disabled,
+  };
+  
+  const bgColorMap = {
+    error: theme.palette.warning.light,
+    warning: theme.palette.warning.light,
+    success: theme.palette.success.light,
+    info: theme.palette.info.light,
+  } as const;
+  
   return (
     <Card
       sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: color === 'error' ? '#fff3e0' : '#f5f5f5',
+        bgcolor: color ? bgColorMap[color] : theme.palette.action.hover,
       }}
     >
       <CardContent sx={{ flex: 1 }}>
@@ -73,8 +89,7 @@ function StatusCard({
             <TrendingUpIcon
               sx={{
                 fontSize: '1.2rem',
-                color:
-                  trend === 'up' ? '#4caf50' : trend === 'down' ? '#f44336' : '#9e9e9e',
+                color: trendColorMap[trend],
                 transform: trend === 'down' ? 'rotate(180deg)' : 'none',
               }}
             />
@@ -205,7 +220,7 @@ export default function DashboardPage() {
             variant="h6"
             sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
           >
-            <CheckCircleIcon sx={{ fontSize: '1.3rem', color: '#4caf50' }} />
+            <CheckCircleIcon sx={{ fontSize: '1.3rem', color: 'success.main' }} />
             System Status
           </Typography>
 
@@ -272,7 +287,7 @@ export default function DashboardPage() {
               sx={{
                 fontWeight: 700,
                 mt: 1,
-                color: metrics.queuedJobs > 0 ? '#2196f3' : '#9e9e9e',
+                color: metrics.queuedJobs > 0 ? 'info.main' : 'text.disabled',
               }}
             >
               {metrics.queuedJobs}
@@ -293,7 +308,7 @@ export default function DashboardPage() {
               <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 600 }}>
                 Deployment Success Rate
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700, mt: 1, color: '#4caf50' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mt: 1, color: 'success.main' }}>
                 {stats.deploymentSuccessRate}%
               </Typography>
               <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>

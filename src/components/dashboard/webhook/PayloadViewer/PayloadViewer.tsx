@@ -7,6 +7,7 @@ import {
   Alert,
   TextField,
   Chip,
+  useTheme,
 } from '@mui/material';
 import {
   ContentCopy,
@@ -26,6 +27,7 @@ export default function PayloadViewer({
   hash,
   searchable = true,
 }: PayloadViewerProps) {
+  const theme = useTheme();
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -148,7 +150,7 @@ export default function PayloadViewer({
       <Paper
         sx={{
           p: 2,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f5f5f5',
           fontFamily: 'monospace',
           fontSize: '0.85rem',
           maxHeight: 400,
